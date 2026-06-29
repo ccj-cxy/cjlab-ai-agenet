@@ -2,19 +2,16 @@ package io.github.cjlab.agent.rag.persistence.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.time.LocalDateTime;
+import io.cjlab.mybatisplus.datasource.core.BaseDO;
 
 @TableName("cjlab_knowledge_document")
-public class KnowledgeDocumentEntity {
+public class KnowledgeDocumentEntity extends BaseDO {
 
     @TableId
     private String id;
     private String title;
     private String content;
     private String metadataJson;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     public String getId() {
         return id;
@@ -48,19 +45,4 @@ public class KnowledgeDocumentEntity {
         this.metadataJson = metadataJson;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
 }

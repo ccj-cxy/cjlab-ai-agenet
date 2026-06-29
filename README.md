@@ -20,6 +20,7 @@
 
 - [docs/project-architecture.md](docs/project-architecture.md)
 - [docs/user-management.md](docs/user-management.md)
+- [docs/database-design.md](docs/database-design.md)
 
 用户管理 MySQL 建表语句：
 

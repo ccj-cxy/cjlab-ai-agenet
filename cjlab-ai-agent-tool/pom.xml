@@ -17,5 +17,9 @@
             <artifactId>cjlab-ai-agent-common</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.github.ccj-cxy</groupId>
+            <artifactId>cjlab-boot-starter-mybatis-plus</artifactId>
+        </dependency>
     </dependencies>
 </project>

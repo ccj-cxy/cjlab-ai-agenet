@@ -2,16 +2,16 @@ package io.github.cjlab.agent.user.persistence.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import io.cjlab.mybatisplus.datasource.core.BaseDO;
 
 import java.time.LocalDateTime;
 
 @TableName("cjlab_user_session")
-public class UserSessionEntity {
+public class UserSessionEntity extends BaseDO {
 
     @TableId
     private String token;
     private String userId;
-    private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
 
     public String getToken() {
@@ -28,14 +28,6 @@ public class UserSessionEntity {
 
     public void setUserId(String userId) {
         this.userId = userId;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 
     public LocalDateTime getExpiresAt() {

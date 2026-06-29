@@ -8,20 +8,17 @@ import io.github.cjlab.agent.memory.persistence.entity.ConversationMessageEntity
 import io.github.cjlab.agent.memory.persistence.mapper.ConversationMessageMapper;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 public class MyBatisPlusConversationMemory implements ConversationMemory {
 
     private final ConversationMessageMapper conversationMessageMapper;
-    private final ZoneId zoneId;
 
     public MyBatisPlusConversationMemory(ConversationMessageMapper conversationMessageMapper) {
         this.conversationMessageMapper = conversationMessageMapper;
-        this.zoneId = ZoneId.systemDefault();
     }
 
     @Override
@@ -34,7 +31,7 @@ public class MyBatisPlusConversationMemory implements ConversationMemory {
         int safeLimit = Math.max(1, limit);
         return conversationMessageMapper.selectList(new LambdaQueryWrapper<ConversationMessageEntity>()
                         .eq(ConversationMessageEntity::getConversationId, conversationId)
-                        .orderByDesc(ConversationMessageEntity::getCreatedAt)
+                        .orderByDesc(ConversationMessageEntity::getCreateTime)
                         .last("LIMIT " + safeLimit))
                 .stream()
                 .map(this::toDomain)
@@ -48,7 +45,8 @@ public class MyBatisPlusConversationMemory implements ConversationMemory {
         entity.setConversationId(message.conversationId());
         entity.setRole(message.role().name());
         entity.setContent(message.content());
-        entity.setCreatedAt(toLocalDateTime(message.createdAt()));
+        entity.setCreateTime(toDate(message.createdAt()));
+        entity.setDeleted(false);
         return entity;
     }
 
@@ -57,15 +55,15 @@ public class MyBatisPlusConversationMemory implements ConversationMemory {
                 entity.getConversationId(),
                 MessageRole.valueOf(entity.getRole()),
                 entity.getContent(),
-                toInstant(entity.getCreatedAt())
+                toInstant(entity.getCreateTime())
         );
     }
 
-    private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, zoneId);
+    private Date toDate(Instant instant) {
+        return instant == null ? null : Date.from(instant);
     }
 
-    private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.atZone(zoneId).toInstant();
+    private Instant toInstant(Date date) {
+        return date == null ? null : date.toInstant();
     }
 }

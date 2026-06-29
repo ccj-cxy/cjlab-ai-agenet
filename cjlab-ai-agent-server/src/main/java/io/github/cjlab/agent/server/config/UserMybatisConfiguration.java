@@ -7,7 +7,8 @@ import org.springframework.context.annotation.Configuration;
 @MapperScan({
         "io.github.cjlab.agent.user.persistence.mapper",
         "io.github.cjlab.agent.memory.persistence.mapper",
-        "io.github.cjlab.agent.rag.persistence.mapper"
+        "io.github.cjlab.agent.rag.persistence.mapper",
+        "io.github.cjlab.agent.tool.persistence.mapper"
 })
 public class UserMybatisConfiguration {
 }

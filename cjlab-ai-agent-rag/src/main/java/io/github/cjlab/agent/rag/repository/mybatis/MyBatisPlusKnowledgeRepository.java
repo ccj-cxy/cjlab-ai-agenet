@@ -8,7 +8,7 @@ import io.github.cjlab.agent.rag.KnowledgeRepository;
 import io.github.cjlab.agent.rag.persistence.entity.KnowledgeDocumentEntity;
 import io.github.cjlab.agent.rag.persistence.mapper.KnowledgeDocumentMapper;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,14 +52,15 @@ public class MyBatisPlusKnowledgeRepository implements KnowledgeRepository {
     }
 
     private KnowledgeDocumentEntity toEntity(KnowledgeDocument document, KnowledgeDocumentEntity existing) {
-        LocalDateTime now = LocalDateTime.now();
+        Date now = new Date();
         KnowledgeDocumentEntity entity = new KnowledgeDocumentEntity();
         entity.setId(document.id());
         entity.setTitle(document.title());
         entity.setContent(document.content());
         entity.setMetadataJson(writeMetadata(document.metadata()));
-        entity.setCreatedAt(existing == null ? now : existing.getCreatedAt());
-        entity.setUpdatedAt(now);
+        entity.setCreateTime(existing == null ? now : existing.getCreateTime());
+        entity.setUpdateTime(now);
+        entity.setDeleted(false);
         return entity;
     }
 

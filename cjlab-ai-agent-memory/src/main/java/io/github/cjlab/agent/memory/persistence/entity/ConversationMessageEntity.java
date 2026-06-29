@@ -2,18 +2,16 @@ package io.github.cjlab.agent.memory.persistence.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.time.LocalDateTime;
+import io.cjlab.mybatisplus.datasource.core.BaseDO;
 
 @TableName("cjlab_conversation_message")
-public class ConversationMessageEntity {
+public class ConversationMessageEntity extends BaseDO {
 
     @TableId
     private String id;
     private String conversationId;
     private String role;
     private String content;
-    private LocalDateTime createdAt;
 
     public String getId() {
         return id;
@@ -47,11 +45,4 @@ public class ConversationMessageEntity {
         this.content = content;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 }

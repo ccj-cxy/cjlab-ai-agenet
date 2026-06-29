@@ -10,8 +10,11 @@ CREATE TABLE IF NOT EXISTS cjlab_user_account (
     display_name VARCHAR(100) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    creator VARCHAR(64) NULL,
+    updater VARCHAR(64) NULL,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     UNIQUE KEY uk_cjlab_user_account_email (email),
     KEY idx_cjlab_user_account_status (status)
@@ -20,8 +23,12 @@ CREATE TABLE IF NOT EXISTS cjlab_user_account (
 CREATE TABLE IF NOT EXISTS cjlab_user_session (
     token VARCHAR(128) NOT NULL,
     user_id VARCHAR(64) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    creator VARCHAR(64) NULL,
+    updater VARCHAR(64) NULL,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (token),
     KEY idx_cjlab_user_session_user_id (user_id),
     KEY idx_cjlab_user_session_expires_at (expires_at),
@@ -36,9 +43,13 @@ CREATE TABLE IF NOT EXISTS cjlab_conversation_message (
     conversation_id VARCHAR(255) NOT NULL,
     role VARCHAR(32) NOT NULL,
     content LONGTEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    creator VARCHAR(64) NULL,
+    updater VARCHAR(64) NULL,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
-    KEY idx_cjlab_conversation_message_conversation_created (conversation_id, created_at)
+    KEY idx_cjlab_conversation_message_conversation_created (conversation_id, create_time)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS cjlab_knowledge_document (
@@ -46,8 +57,30 @@ CREATE TABLE IF NOT EXISTS cjlab_knowledge_document (
     title VARCHAR(255) NOT NULL,
     content LONGTEXT NOT NULL,
     metadata_json JSON NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    creator VARCHAR(64) NULL,
+    updater VARCHAR(64) NULL,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
-    KEY idx_cjlab_knowledge_document_updated_at (updated_at)
+    KEY idx_cjlab_knowledge_document_updated_at (update_time)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS cjlab_tool_call_record (
+    id VARCHAR(64) NOT NULL,
+    conversation_id VARCHAR(255) NOT NULL,
+    tool_name VARCHAR(128) NOT NULL,
+    input LONGTEXT NULL,
+    arguments_json JSON NULL,
+    output LONGTEXT NULL,
+    success TINYINT(1) NOT NULL DEFAULT 1,
+    error_message TEXT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    creator VARCHAR(64) NULL,
+    updater VARCHAR(64) NULL,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_cjlab_tool_call_record_conversation_created (conversation_id, create_time),
+    KEY idx_cjlab_tool_call_record_tool_name (tool_name)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;

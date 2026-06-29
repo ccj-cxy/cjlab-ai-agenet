@@ -8,18 +8,15 @@ import io.github.cjlab.agent.user.persistence.entity.UserAccountEntity;
 import io.github.cjlab.agent.user.persistence.mapper.UserAccountMapper;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.util.Date;
 import java.util.Optional;
 
 public class MyBatisPlusUserRepository implements UserRepository {
 
     private final UserAccountMapper userAccountMapper;
-    private final ZoneId zoneId;
 
     public MyBatisPlusUserRepository(UserAccountMapper userAccountMapper) {
         this.userAccountMapper = userAccountMapper;
-        this.zoneId = ZoneId.systemDefault();
     }
 
     @Override
@@ -56,8 +53,9 @@ public class MyBatisPlusUserRepository implements UserRepository {
         entity.setDisplayName(user.displayName());
         entity.setPasswordHash(user.passwordHash());
         entity.setStatus(user.status().name());
-        entity.setCreatedAt(toLocalDateTime(user.createdAt()));
-        entity.setUpdatedAt(toLocalDateTime(user.updatedAt()));
+        entity.setCreateTime(toDate(user.createdAt()));
+        entity.setUpdateTime(toDate(user.updatedAt()));
+        entity.setDeleted(false);
         return entity;
     }
 
@@ -68,17 +66,17 @@ public class MyBatisPlusUserRepository implements UserRepository {
                 entity.getDisplayName(),
                 entity.getPasswordHash(),
                 UserStatus.valueOf(entity.getStatus()),
-                toInstant(entity.getCreatedAt()),
-                toInstant(entity.getUpdatedAt())
+                toInstant(entity.getCreateTime()),
+                toInstant(entity.getUpdateTime())
         );
     }
 
-    private LocalDateTime toLocalDateTime(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, zoneId);
+    private Date toDate(Instant instant) {
+        return instant == null ? null : Date.from(instant);
     }
 
-    private Instant toInstant(LocalDateTime localDateTime) {
-        return localDateTime == null ? null : localDateTime.atZone(zoneId).toInstant();
+    private Instant toInstant(Date date) {
+        return date == null ? null : date.toInstant();
     }
 
     private String normalizeEmail(String email) {

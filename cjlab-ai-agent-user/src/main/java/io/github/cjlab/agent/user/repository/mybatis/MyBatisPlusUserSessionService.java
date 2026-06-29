@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Optional;
 
 public class MyBatisPlusUserSessionService implements UserSessionService {
@@ -75,8 +76,9 @@ public class MyBatisPlusUserSessionService implements UserSessionService {
         UserSessionEntity entity = new UserSessionEntity();
         entity.setToken(session.token());
         entity.setUserId(session.userId());
-        entity.setCreatedAt(toLocalDateTime(session.createdAt()));
+        entity.setCreateTime(toDate(session.createdAt()));
         entity.setExpiresAt(toLocalDateTime(session.expiresAt()));
+        entity.setDeleted(false);
         return entity;
     }
 
@@ -84,9 +86,17 @@ public class MyBatisPlusUserSessionService implements UserSessionService {
         return new UserSession(
                 entity.getToken(),
                 entity.getUserId(),
-                toInstant(entity.getCreatedAt()),
+                toInstant(entity.getCreateTime()),
                 toInstant(entity.getExpiresAt())
         );
+    }
+
+    private Date toDate(Instant instant) {
+        return instant == null ? null : Date.from(instant);
+    }
+
+    private Instant toInstant(Date date) {
+        return date == null ? null : date.toInstant();
     }
 
     private LocalDateTime toLocalDateTime(Instant instant) {

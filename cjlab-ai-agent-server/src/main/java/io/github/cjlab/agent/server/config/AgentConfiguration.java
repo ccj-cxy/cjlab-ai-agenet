@@ -23,9 +23,13 @@ import io.github.cjlab.agent.rag.repository.mybatis.MyBatisPlusKnowledgeReposito
 import io.github.cjlab.agent.server.security.UserScopedKnowledgeRetriever;
 import io.github.cjlab.agent.tool.CurrentTimeTool;
 import io.github.cjlab.agent.tool.InMemoryToolRegistry;
+import io.github.cjlab.agent.tool.PersistentToolRegistry;
 import io.github.cjlab.agent.tool.RuleBasedToolOrchestrator;
+import io.github.cjlab.agent.tool.ToolCallRecordRepository;
 import io.github.cjlab.agent.tool.ToolOrchestrator;
 import io.github.cjlab.agent.tool.ToolRegistry;
+import io.github.cjlab.agent.tool.persistence.mapper.ToolCallRecordMapper;
+import io.github.cjlab.agent.tool.repository.mybatis.MyBatisPlusToolCallRecordRepository;
 import io.github.cjlab.agent.user.PasswordHasher;
 import io.github.cjlab.agent.user.Pbkdf2PasswordHasher;
 import io.github.cjlab.agent.user.UserRepository;
@@ -84,8 +88,16 @@ public class AgentConfiguration {
     }
 
     @Bean
-    public ToolRegistry toolRegistry() {
-        return new InMemoryToolRegistry(List.of(new CurrentTimeTool()));
+    public ToolCallRecordRepository toolCallRecordRepository(ToolCallRecordMapper toolCallRecordMapper) {
+        return new MyBatisPlusToolCallRecordRepository(toolCallRecordMapper);
+    }
+
+    @Bean
+    public ToolRegistry toolRegistry(ToolCallRecordRepository toolCallRecordRepository) {
+        return new PersistentToolRegistry(
+                new InMemoryToolRegistry(List.of(new CurrentTimeTool())),
+                toolCallRecordRepository
+        );
     }
 
     @Bean

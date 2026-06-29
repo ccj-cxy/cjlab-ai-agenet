@@ -10,4 +10,10 @@
     </parent>
 
     <artifactId>cjlab-ai-agent-common</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>io.github.ccj-cxy</groupId>
+            <artifactId>cjlab-boot-starter-common</artifactId>
+        </dependency>
+    </dependencies>
 </project>

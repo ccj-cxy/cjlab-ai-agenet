@@ -2,11 +2,10 @@ package io.github.cjlab.agent.user.persistence.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import java.time.LocalDateTime;
+import io.cjlab.mybatisplus.datasource.core.BaseDO;
 
 @TableName("cjlab_user_account")
-public class UserAccountEntity {
+public class UserAccountEntity extends BaseDO {
 
     @TableId
     private String id;
@@ -14,8 +13,6 @@ public class UserAccountEntity {
     private String displayName;
     private String passwordHash;
     private String status;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     public String getId() {
         return id;
@@ -57,19 +54,4 @@ public class UserAccountEntity {
         this.status = status;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
 }
