@@ -1,0 +1,13 @@
+spring:
+  ai:
+    model:
+      chat: none
+
+cjlab:
+  openai-compatible:
+    base-url: ${CJLAB_OPENAI_BASE_URL:https://api.openai.com}
+    api-key: ${CJLAB_OPENAI_API_KEY:}
+    model: ${CJLAB_OPENAI_MODEL:gpt-4o-mini}
+    completions-path: ${CJLAB_OPENAI_CHAT_COMPLETIONS_PATH:/v1/chat/completions}
+    temperature: ${CJLAB_OPENAI_TEMPERATURE:0.7}
+    timeout: ${CJLAB_OPENAI_TIMEOUT:60s}

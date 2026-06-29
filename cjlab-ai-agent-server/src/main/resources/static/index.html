@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CJLab AI Agent Console</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="app-shell">
+    <aside class="sidebar">
+        <section class="brand">
+            <div class="brand-mark">CJ</div>
+            <div>
+                <h1>CJLab Agent</h1>
+                <span id="runtimeBadge">checking runtime</span>
+            </div>
+        </section>
+
+        <section class="auth-panel">
+            <div class="panel-heading">
+                <h2>账户</h2>
+                <button id="logoutBtn" class="ghost-button tiny-button hidden" type="button">退出</button>
+            </div>
+            <div id="signedInBox" class="signed-box hidden">
+                <strong id="currentUserName">未登录</strong>
+                <span id="currentUserEmail">-</span>
+            </div>
+            <form id="authForm" class="auth-form">
+                <div class="auth-mode" role="tablist" aria-label="账户操作">
+                    <button id="loginModeBtn" class="segmented active" type="button">登录</button>
+                    <button id="registerModeBtn" class="segmented" type="button">注册</button>
+                </div>
+                <label for="emailInput">邮箱</label>
+                <input id="emailInput" type="email" autocomplete="email" placeholder="name@example.com" required>
+                <label for="passwordInput">密码</label>
+                <input id="passwordInput" type="password" autocomplete="current-password" placeholder="至少 8 位" required>
+                <div id="displayNameGroup" class="hidden">
+                    <label for="displayNameInput">显示名</label>
+                    <input id="displayNameInput" type="text" autocomplete="name" placeholder="CJLab User">
+                </div>
+                <button id="authSubmitBtn" class="primary-button full-button" type="submit">登录</button>
+                <div id="authStatus" class="inline-status">需要 MySQL 用户表可用</div>
+            </form>
+        </section>
+
+        <section class="runtime-panel">
+            <div class="metric">
+                <span>Runtime</span>
+                <strong id="runtimeValue">-</strong>
+            </div>
+            <div class="metric">
+                <span>Model</span>
+                <strong id="chatModelValue">-</strong>
+            </div>
+            <div class="metric">
+                <span>Profiles</span>
+                <strong id="profilesValue">-</strong>
+            </div>
+            <button id="refreshRuntimeBtn" class="secondary-button full-button" type="button">刷新状态</button>
+        </section>
+
+        <section class="conversation-panel">
+            <div class="panel-heading">
+                <h2>会话</h2>
+                <button id="newChatBtn" class="secondary-button tiny-button" type="button">新建</button>
+            </div>
+            <label for="conversationId">会话 ID</label>
+            <input id="conversationId" type="text" value="demo" autocomplete="off">
+            <div id="conversationList" class="conversation-list"></div>
+        </section>
+    </aside>
+
+    <main class="chat-surface">
+        <header class="chat-header">
+            <div>
+                <h2 id="chatTitle">demo</h2>
+                <span id="chatSubtitle">请先登录，然后开始 SSE 对话</span>
+            </div>
+            <div class="header-actions">
+                <button id="loadMemoryBtn" class="secondary-button" type="button">同步记忆</button>
+                <button id="clearChatBtn" class="secondary-button" type="button">清屏</button>
+            </div>
+        </header>
+
+        <section id="chatStream" class="chat-stream" aria-live="polite"></section>
+
+        <form id="chatForm" class="composer">
+            <textarea id="chatMessage" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行">帮我总结当前项目的用户管理、工具调用和 RAG 能力。</textarea>
+            <button id="sendChatBtn" class="send-button" type="submit">发送</button>
+        </form>
+    </main>
+
+    <aside class="context-panel">
+        <nav class="tabs" role="tablist" aria-label="调试面板">
+            <button class="tab-button active" type="button" data-tab="rag">RAG</button>
+            <button class="tab-button" type="button" data-tab="memory">Memory</button>
+            <button class="tab-button" type="button" data-tab="tools">Tools</button>
+            <button class="tab-button" type="button" data-tab="log">Log</button>
+        </nav>
+
+        <section id="ragTab" class="tab-panel active">
+            <div class="panel-heading">
+                <h2>知识库</h2>
+                <button id="listKnowledgeBtn" class="secondary-button tiny-button" type="button">列表</button>
+            </div>
+            <label for="knowledgeTitle">标题</label>
+            <input id="knowledgeTitle" type="text" value="CJLab Agent 项目">
+            <label for="knowledgeContent">内容</label>
+            <textarea id="knowledgeContent" rows="5">CJLab Agent 当前包含邮箱注册登录、SSE 对话、DAG Runtime、Tool 编排和 BM25 RAG 检索能力。用户数据固定存储在 MySQL 中。</textarea>
+            <button id="saveKnowledgeBtn" class="primary-button full-button" type="button">保存文档</button>
+            <div class="search-row">
+                <input id="searchQuery" type="text" value="用户管理 MySQL RAG 工具" aria-label="检索关键词">
+                <button id="searchKnowledgeBtn" class="secondary-button" type="button">检索</button>
+            </div>
+            <div id="knowledgeList" class="result-list">暂无数据</div>
+        </section>
+
+        <section id="memoryTab" class="tab-panel">
+            <div class="panel-heading">
+                <h2>会话记忆</h2>
+                <input id="memoryLimit" class="compact-input" type="number" min="1" max="100" value="20" aria-label="消息数量">
+            </div>
+            <button id="reloadMemoryBtn" class="secondary-button full-button" type="button">读取当前会话</button>
+            <div id="memoryList" class="result-list">暂无数据</div>
+        </section>
+
+        <section id="toolsTab" class="tab-panel">
+            <div class="panel-heading">
+                <h2>工具</h2>
+                <button id="loadToolsBtn" class="secondary-button tiny-button" type="button">加载</button>
+            </div>
+            <label for="toolSelect">工具</label>
+            <select id="toolSelect"></select>
+            <label for="toolInput">输入</label>
+            <input id="toolInput" type="text" value="now">
+            <label for="toolArguments">参数 JSON</label>
+            <textarea id="toolArguments" rows="4">{}</textarea>
+            <button id="executeToolBtn" class="primary-button full-button" type="button">执行工具</button>
+            <div id="toolResult" class="result-list">暂无数据</div>
+        </section>
+
+        <section id="logTab" class="tab-panel">
+            <div class="panel-heading">
+                <h2>请求日志</h2>
+                <button id="clearLogBtn" class="secondary-button tiny-button" type="button">清空</button>
+            </div>
+            <pre id="requestLog">等待请求</pre>
+        </section>
+    </aside>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>

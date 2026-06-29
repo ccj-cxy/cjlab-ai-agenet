@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: cjlab-ai-agent
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${CJLAB_MYSQL_URL:jdbc:mysql://localhost:3306/cjlab_ai_agent?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai}
+    username: ${CJLAB_MYSQL_USERNAME:root}
+    password: ${CJLAB_MYSQL_PASSWORD:123456}
+  ai:
+    model:
+      chat: none
+      embedding:
+        text: none
+        multimodal: none
+      image: none
+      video: none
+      audio:
+        speech: none
+        transcription: none
+      rerank: none
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY:}
+      agent:
+        enabled: false
+    alibaba:
+      tool:
+        async:
+          enabled: false
+
+server:
+  port: 8080
+
+cjlab:
+  agent:
+    runtime: local-dag
+  user:
+    session-ttl: 24h
