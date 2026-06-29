@@ -45,8 +45,8 @@ public class DefaultAgentService implements AgentService {
         ));
 
         AgentRunResult result = chunkConsumer == null
-                ? agentRuntime.run(new AgentRunRequest(conversationId, request.message()))
-                : agentRuntime.stream(new AgentRunRequest(conversationId, request.message()), chunkConsumer);
+                ? agentRuntime.run(new AgentRunRequest(conversationId, request.message(), request.user()))
+                : agentRuntime.stream(new AgentRunRequest(conversationId, request.message(), request.user()), chunkConsumer);
 
         conversationMemory.append(new ConversationMessage(
                 conversationId,

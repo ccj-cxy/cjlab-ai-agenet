@@ -34,6 +34,7 @@ const els = {
     conversationList: document.querySelector("#conversationList"),
     chatTitle: document.querySelector("#chatTitle"),
     chatSubtitle: document.querySelector("#chatSubtitle"),
+    streamState: document.querySelector("#streamState"),
     chatStream: document.querySelector("#chatStream"),
     chatForm: document.querySelector("#chatForm"),
     chatMessage: document.querySelector("#chatMessage"),
@@ -121,9 +122,55 @@ function setStatus(message, type = "") {
     els.authStatus.classList.toggle("error", type === "error");
 }
 
+function setStreamState(label, mode = "idle") {
+    if (!els.streamState) {
+        return;
+    }
+    els.streamState.textContent = label;
+    els.streamState.className = `stream-state ${mode}`;
+}
+
 function renderLog(entry) {
     state.lastLog = entry;
     els.requestLog.textContent = pretty(entry);
+}
+
+function splitThinkContent(rawContent) {
+    const content = String(rawContent ?? "");
+    const lower = content.toLowerCase();
+    const openTag = "<think>";
+    const closeTag = "</think>";
+    const thinkingParts = [];
+    const answerParts = [];
+    let cursor = 0;
+    let inThink = false;
+
+    while (cursor < content.length) {
+        if (!inThink) {
+            const openIndex = lower.indexOf(openTag, cursor);
+            if (openIndex === -1) {
+                answerParts.push(content.slice(cursor));
+                break;
+            }
+            answerParts.push(content.slice(cursor, openIndex));
+            cursor = openIndex + openTag.length;
+            inThink = true;
+        } else {
+            const closeIndex = lower.indexOf(closeTag, cursor);
+            if (closeIndex === -1) {
+                thinkingParts.push(content.slice(cursor));
+                cursor = content.length;
+                break;
+            }
+            thinkingParts.push(content.slice(cursor, closeIndex));
+            cursor = closeIndex + closeTag.length;
+            inThink = false;
+        }
+    }
+
+    const thinking = thinkingParts.join("").trim();
+    const answer = answerParts.join("").replace(/^\s+/, "");
+    return { thinking, answer, thinkingOpen: inThink };
 }
 
 async function requestJson(method, path, body, options = {}) {
@@ -261,6 +308,9 @@ function renderAuth() {
     els.loadToolsBtn.disabled = !signedIn;
     els.executeToolBtn.disabled = !signedIn;
     els.chatSubtitle.textContent = signedIn ? "ready" : "请先登录，然后开始 SSE 对话";
+    if (!state.sending) {
+        setStreamState(signedIn ? "ready" : "locked", signedIn ? "ready" : "idle");
+    }
 }
 
 function switchAuthMode(mode) {
@@ -384,13 +434,29 @@ function appendMessage(role, content, options = {}) {
     els.chatStream.querySelector(".empty-state")?.remove();
     const row = document.createElement("div");
     row.className = `message-row ${role}${options.pending ? " pending" : ""}`;
-    row.innerHTML = `
+    const parsed = role === "assistant" ? splitThinkContent(content) : { thinking: "", answer: content };
+    row.innerHTML = role === "assistant" ? `
+        <div class="message">
+            <div class="think-panel ${parsed.thinking ? "" : "hidden"}">
+                <button class="think-toggle" type="button" aria-expanded="false">
+                    <span>思考</span>
+                    <span class="think-state">${parsed.thinkingOpen ? "生成中" : "已收起"}</span>
+                </button>
+                <pre class="think-content hidden">${escapeHtml(parsed.thinking)}</pre>
+            </div>
+            <div class="bubble">${escapeHtml(parsed.answer)}</div>
+            <div class="message-meta">
+                <span>Agent</span>
+                <span>${escapeHtml(options.time || nowLabel())}</span>
+                ${options.pending ? '<span class="streaming-dot">SSE</span>' : '<button class="copy-message" type="button">复制</button>'}
+            </div>
+        </div>
+    ` : `
         <div class="message">
             <div class="bubble">${escapeHtml(content)}</div>
             <div class="message-meta">
-                <span>${role === "user" ? "You" : "Agent"}</span>
+                <span>You</span>
                 <span>${escapeHtml(options.time || nowLabel())}</span>
-                ${role === "assistant" && !options.pending ? '<button class="copy-message" type="button">复制</button>' : ""}
             </div>
         </div>
     `;
@@ -401,9 +467,14 @@ function appendMessage(role, content, options = {}) {
 
 function updateMessage(row, content, pending = false) {
     row.classList.toggle("pending", pending);
-    row.querySelector(".bubble").textContent = content;
+    if (row.classList.contains("assistant")) {
+        renderAssistantMessage(row, content, pending);
+    } else {
+        row.querySelector(".bubble").textContent = content;
+    }
     const meta = row.querySelector(".message-meta");
     if (!pending && !meta.querySelector(".copy-message")) {
+        meta.querySelector(".streaming-dot")?.remove();
         const button = document.createElement("button");
         button.className = "copy-message";
         button.type = "button";
@@ -414,8 +485,34 @@ function updateMessage(row, content, pending = false) {
 }
 
 function appendToMessage(row, content) {
-    const bubble = row.querySelector(".bubble");
-    bubble.textContent = `${bubble.textContent}${content}`;
+    const current = row.dataset.rawContent || "";
+    updateMessage(row, `${current}${content}`, true);
+}
+
+function renderAssistantMessage(row, rawContent, pending = false) {
+    const parsed = splitThinkContent(rawContent);
+    row.dataset.rawContent = rawContent;
+    row.querySelector(".bubble").textContent = parsed.answer || (pending ? "正在接收回复..." : "");
+    const thinkPanel = row.querySelector(".think-panel");
+    const thinkContent = row.querySelector(".think-content");
+    const thinkToggle = row.querySelector(".think-toggle");
+    const thinkState = row.querySelector(".think-state");
+
+    if (parsed.thinking) {
+        thinkPanel.classList.remove("hidden");
+        thinkContent.textContent = parsed.thinking;
+        if (pending && parsed.thinkingOpen) {
+            thinkContent.classList.remove("hidden");
+            thinkToggle.setAttribute("aria-expanded", "true");
+            thinkState.textContent = "生成中";
+        } else {
+            thinkContent.classList.add("hidden");
+            thinkToggle.setAttribute("aria-expanded", "false");
+            thinkState.textContent = "已收起";
+        }
+    } else {
+        thinkPanel.classList.add("hidden");
+    }
     scrollChat();
 }
 
@@ -463,6 +560,7 @@ async function sendChat(event) {
     state.sending = true;
     renderAuth();
     els.chatSubtitle.textContent = "streaming";
+    setStreamState("connecting", "streaming");
     const id = currentConversationId();
     touchConversation(id, message.slice(0, 28) || id);
     appendMessage("user", message);
@@ -472,14 +570,24 @@ async function sendChat(event) {
 
     try {
         let streamedContent = "";
+        let deltaCount = 0;
         await requestChatStream({ conversationId: id, message }, {
+            start: data => {
+                setStreamState("connected", "streaming");
+                if (data.conversationId) {
+                    els.chatTitle.textContent = data.conversationId;
+                }
+            },
             delta: data => {
                 streamedContent += data.content || "";
-                appendToMessage(pendingRow, data.content || "");
+                deltaCount += 1;
+                updateMessage(pendingRow, streamedContent, true);
+                setStreamState(`stream ${deltaCount}`, "streaming");
             },
             done: data => {
                 streamedContent = data.content || streamedContent;
                 updateMessage(pendingRow, streamedContent, false);
+                setStreamState("done", "ready");
             }
         });
         els.chatSubtitle.textContent = "ready";
@@ -487,6 +595,7 @@ async function sendChat(event) {
     } catch (error) {
         updateMessage(pendingRow, `请求失败: ${error.message}`, false);
         els.chatSubtitle.textContent = "error";
+        setStreamState("error", "error");
     } finally {
         state.sending = false;
         renderAuth();
@@ -652,6 +761,18 @@ els.chatMessage.addEventListener("keydown", event => {
     }
 });
 els.chatStream.addEventListener("click", event => {
+    const thinkToggle = event.target.closest(".think-toggle");
+    if (thinkToggle) {
+        const panel = thinkToggle.closest(".think-panel");
+        const content = panel.querySelector(".think-content");
+        const stateLabel = panel.querySelector(".think-state");
+        const expanded = thinkToggle.getAttribute("aria-expanded") === "true";
+        thinkToggle.setAttribute("aria-expanded", String(!expanded));
+        content.classList.toggle("hidden", expanded);
+        stateLabel.textContent = expanded ? "已收起" : "已展开";
+        return;
+    }
+
     const button = event.target.closest(".copy-message");
     if (!button) {
         return;

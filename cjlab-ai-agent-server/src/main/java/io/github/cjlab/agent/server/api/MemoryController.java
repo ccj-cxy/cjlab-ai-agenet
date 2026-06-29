@@ -2,10 +2,9 @@ package io.github.cjlab.agent.server.api;
 
 import io.github.cjlab.agent.memory.ConversationMemory;
 import io.github.cjlab.agent.memory.ConversationMessage;
-import io.github.cjlab.agent.server.security.AuthInterceptor;
 import io.github.cjlab.agent.server.security.CurrentUser;
+import io.github.cjlab.agent.server.security.CurrentUserContext;
 import io.github.cjlab.agent.server.security.UserConversationIds;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,10 +26,9 @@ public class MemoryController {
     @GetMapping("/{conversationId}")
     public List<ConversationMessage> recent(
             @PathVariable String conversationId,
-            @RequestParam(defaultValue = "20") int limit,
-            HttpServletRequest request
+            @RequestParam(defaultValue = "20") int limit
     ) {
-        CurrentUser user = (CurrentUser) request.getAttribute(AuthInterceptor.CURRENT_USER_ATTRIBUTE);
+        CurrentUser user = CurrentUserContext.required();
         String externalConversationId = UserConversationIds.external(conversationId);
         return conversationMemory.recent(UserConversationIds.internal(user.id(), externalConversationId), limit)
                 .stream()

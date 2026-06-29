@@ -3,12 +3,11 @@ package io.github.cjlab.agent.server.api;
 import io.github.cjlab.agent.core.chat.AgentService;
 import io.github.cjlab.agent.core.chat.ChatRequest;
 import io.github.cjlab.agent.core.chat.ChatResponse;
+import io.github.cjlab.agent.core.chat.ChatUser;
 import io.github.cjlab.agent.server.security.CurrentUser;
-import io.github.cjlab.agent.server.security.AuthInterceptor;
 import io.github.cjlab.agent.server.security.UserConversationIds;
 import io.github.cjlab.agent.server.security.CurrentUserContext;
 import jakarta.annotation.PreDestroy;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,14 +31,14 @@ public class ChatController {
     }
 
     @PostMapping
-    public ChatResponse chat(@RequestBody ChatRequest request, HttpServletRequest servletRequest) {
-        return chatForCurrentUser(request, currentUser(servletRequest));
+    public ChatResponse chat(@RequestBody ChatRequest request) {
+        return chatForCurrentUser(request, CurrentUserContext.required());
     }
 
     @PostMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter stream(@RequestBody ChatRequest request, HttpServletRequest servletRequest) {
+    public SseEmitter stream(@RequestBody ChatRequest request) {
         SseEmitter emitter = new SseEmitter(120_000L);
-        CurrentUser user = currentUser(servletRequest);
+        CurrentUser user = CurrentUserContext.required();
         executorService.execute(() -> {
             try {
                 CurrentUserContext.set(user);
@@ -73,7 +72,8 @@ public class ChatController {
         String externalConversationId = UserConversationIds.external(request == null ? null : request.conversationId());
         ChatResponse response = agentService.chat(new ChatRequest(
                 UserConversationIds.internal(user.id(), externalConversationId),
-                request == null ? null : request.message()
+                request == null ? null : request.message(),
+                toChatUser(user)
         ));
         return new ChatResponse(externalConversationId, response.content());
     }
@@ -86,13 +86,19 @@ public class ChatController {
         String externalConversationId = UserConversationIds.external(request == null ? null : request.conversationId());
         ChatResponse response = agentService.streamChat(new ChatRequest(
                 UserConversationIds.internal(user.id(), externalConversationId),
-                request == null ? null : request.message()
+                request == null ? null : request.message(),
+                toChatUser(user)
         ), chunkConsumer);
         return new ChatResponse(externalConversationId, response.content());
     }
 
-    private CurrentUser currentUser(HttpServletRequest request) {
-        return (CurrentUser) request.getAttribute(AuthInterceptor.CURRENT_USER_ATTRIBUTE);
+    private ChatUser toChatUser(CurrentUser user) {
+        return new ChatUser(
+                user.id(),
+                user.email(),
+                user.displayName(),
+                user.status() == null ? null : user.status().name()
+        );
     }
 
     private void send(SseEmitter emitter, String eventName, ChatStreamEvent event) throws IOException {

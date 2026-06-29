@@ -1,5 +1,7 @@
 package io.github.cjlab.agent.server.security;
 
+import io.github.cjlab.agent.common.AgentException;
+
 public final class CurrentUserContext {
 
     private static final ThreadLocal<CurrentUser> CURRENT_USER = new ThreadLocal<>();
@@ -14,7 +16,7 @@ public final class CurrentUserContext {
     public static CurrentUser required() {
         CurrentUser user = CURRENT_USER.get();
         if (user == null) {
-            throw new IllegalStateException("Current user is not available.");
+            throw new AgentException("Current user is not available.");
         }
         return user;
     }

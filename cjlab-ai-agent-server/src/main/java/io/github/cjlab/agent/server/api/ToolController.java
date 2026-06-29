@@ -1,8 +1,8 @@
 package io.github.cjlab.agent.server.api;
 
 import io.github.cjlab.agent.common.AgentException;
-import io.github.cjlab.agent.server.security.AuthInterceptor;
 import io.github.cjlab.agent.server.security.CurrentUser;
+import io.github.cjlab.agent.server.security.CurrentUserContext;
 import io.github.cjlab.agent.server.security.UserConversationIds;
 import io.github.cjlab.agent.tool.AgentTool;
 import io.github.cjlab.agent.tool.ToolCallRecord;
@@ -10,7 +10,6 @@ import io.github.cjlab.agent.tool.ToolCallRecordRepository;
 import io.github.cjlab.agent.tool.ToolRegistry;
 import io.github.cjlab.agent.tool.ToolRequest;
 import io.github.cjlab.agent.tool.ToolResult;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,12 +42,11 @@ public class ToolController {
     @PostMapping("/{name}/execute")
     public ToolResult execute(
             @PathVariable String name,
-            @RequestBody ToolRequest request,
-            HttpServletRequest servletRequest
+            @RequestBody ToolRequest request
     ) {
         AgentTool tool = toolRegistry.findByName(name)
                 .orElseThrow(() -> new AgentException("Tool not found: " + name));
-        CurrentUser user = currentUser(servletRequest);
+        CurrentUser user = CurrentUserContext.required();
         String externalConversationId = UserConversationIds.external(request == null ? null : request.conversationId());
         return tool.execute(new ToolRequest(
                 UserConversationIds.internal(user.id(), externalConversationId),
@@ -60,10 +58,9 @@ public class ToolController {
     @GetMapping("/calls")
     public List<ToolCallRecord> recentCalls(
             @RequestParam String conversationId,
-            @RequestParam(defaultValue = "20") int limit,
-            HttpServletRequest servletRequest
+            @RequestParam(defaultValue = "20") int limit
     ) {
-        CurrentUser user = currentUser(servletRequest);
+        CurrentUser user = CurrentUserContext.required();
         String externalConversationId = UserConversationIds.external(conversationId);
         return toolCallRecordRepository.recent(UserConversationIds.internal(user.id(), externalConversationId), limit)
                 .stream()
@@ -80,11 +77,6 @@ public class ToolController {
                 ))
                 .toList();
     }
-
-    private CurrentUser currentUser(HttpServletRequest request) {
-        return (CurrentUser) request.getAttribute(AuthInterceptor.CURRENT_USER_ATTRIBUTE);
-    }
-
     public record ToolDescriptor(String name, String description) {
     }
 }

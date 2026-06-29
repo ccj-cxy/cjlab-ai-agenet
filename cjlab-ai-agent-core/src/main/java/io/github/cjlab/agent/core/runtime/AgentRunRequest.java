@@ -1,7 +1,13 @@
 package io.github.cjlab.agent.core.runtime;
 
-public record  AgentRunRequest(
+import io.github.cjlab.agent.core.chat.ChatUser;
+
+public record AgentRunRequest(
         String conversationId,
-        String message
+        String message,
+        ChatUser user
 ) {
+    public AgentRunRequest(String conversationId, String message) {
+        this(conversationId, message, null);
+    }
 }

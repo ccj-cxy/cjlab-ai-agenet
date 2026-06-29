@@ -13,8 +13,6 @@ import java.io.IOException;
 
 public class AuthInterceptor implements HandlerInterceptor {
 
-    public static final String CURRENT_USER_ATTRIBUTE = AuthInterceptor.class.getName() + ".CURRENT_USER";
-
     private final UserService userService;
 
     public AuthInterceptor(UserService userService) {
@@ -29,8 +27,13 @@ public class AuthInterceptor implements HandlerInterceptor {
         String token = bearerToken(request.getHeader(HttpHeaders.AUTHORIZATION));
         try {
             UserProfileResponse user = userService.currentUser(token);
-            CurrentUser currentUser = new CurrentUser(user.id(), user.email(), user.displayName());
-            request.setAttribute(CURRENT_USER_ATTRIBUTE, currentUser);
+            CurrentUser currentUser = new CurrentUser(
+                    user.id(),
+                    user.email(),
+                    user.displayName(),
+                    user.status(),
+                    user.createdAt()
+            );
             CurrentUserContext.set(currentUser);
             return true;
         } catch (AgentException exception) {

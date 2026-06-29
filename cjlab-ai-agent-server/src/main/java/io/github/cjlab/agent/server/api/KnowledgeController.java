@@ -4,9 +4,8 @@ import io.github.cjlab.agent.rag.KnowledgeDocument;
 import io.github.cjlab.agent.rag.KnowledgeRepository;
 import io.github.cjlab.agent.rag.KnowledgeRetriever;
 import io.github.cjlab.agent.rag.RetrievedDocument;
-import io.github.cjlab.agent.server.security.AuthInterceptor;
 import io.github.cjlab.agent.server.security.CurrentUser;
-import jakarta.servlet.http.HttpServletRequest;
+import io.github.cjlab.agent.server.security.CurrentUserContext;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,8 +30,8 @@ public class KnowledgeController {
     }
 
     @PostMapping
-    public KnowledgeDocument save(@RequestBody KnowledgeDocument document, HttpServletRequest request) {
-        CurrentUser user = currentUser(request);
+    public KnowledgeDocument save(@RequestBody KnowledgeDocument document) {
+        CurrentUser user = CurrentUserContext.required();
         String id = document.id() == null || document.id().isBlank()
                 ? UUID.randomUUID().toString()
                 : document.id();
@@ -50,8 +49,8 @@ public class KnowledgeController {
     }
 
     @GetMapping
-    public List<KnowledgeDocument> list(HttpServletRequest request) {
-        CurrentUser user = currentUser(request);
+    public List<KnowledgeDocument> list() {
+        CurrentUser user = CurrentUserContext.required();
         return knowledgeRepository.list().stream()
                 .filter(document -> document.metadata() != null)
                 .filter(document -> user.id().equals(document.metadata().get("userId")))
@@ -64,9 +63,5 @@ public class KnowledgeController {
             @RequestParam(defaultValue = "5") int limit
     ) {
         return knowledgeRetriever.retrieve(query, limit);
-    }
-
-    private CurrentUser currentUser(HttpServletRequest request) {
-        return (CurrentUser) request.getAttribute(AuthInterceptor.CURRENT_USER_ATTRIBUTE);
     }
 }

@@ -56,14 +56,16 @@ public class OpenAiCompatibleChatModelGateway implements ChatModelGateway {
             }
 
             JsonNode root = objectMapper.readTree(response.body());
-            JsonNode content = root.path("choices").path(0).path("message").path("content");
+            JsonNode messageNode = root.path("choices").path(0).path("message");
+            JsonNode reasoningContent = messageNode.path("reasoning_content");
+            JsonNode content = messageNode.path("content");
             if (!content.isMissingNode() && !content.isNull()) {
-                return content.asText();
+                return withReasoning(reasoningContent, content.asText());
             }
 
             JsonNode text = root.path("choices").path(0).path("text");
             if (!text.isMissingNode() && !text.isNull()) {
-                return text.asText();
+                return withReasoning(reasoningContent, text.asText());
             }
 
             throw new AgentException("OpenAI compatible relay response does not contain choices[0].message.content.");
@@ -83,6 +85,7 @@ public class OpenAiCompatibleChatModelGateway implements ChatModelGateway {
 
         Map<String, Object> payload = basePayload(message, true);
         StringBuilder content = new StringBuilder();
+        boolean[] reasoningOpen = {false};
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
@@ -109,14 +112,25 @@ public class OpenAiCompatibleChatModelGateway implements ChatModelGateway {
                     if (data.isBlank() || "[DONE]".equals(data)) {
                         return;
                     }
-                    String chunk = readStreamChunk(data);
-                    if (!chunk.isEmpty()) {
-                        content.append(chunk);
-                        if (chunkConsumer != null) {
-                            chunkConsumer.accept(chunk);
-                        }
+                    StreamChunk chunk = readStreamChunk(data);
+                    if (!chunk.reasoning().isEmpty() && !reasoningOpen[0]) {
+                        appendStreamChunk(content, chunkConsumer, "<think>");
+                        reasoningOpen[0] = true;
+                    }
+                    if (!chunk.reasoning().isEmpty()) {
+                        appendStreamChunk(content, chunkConsumer, chunk.reasoning());
+                    }
+                    if (!chunk.content().isEmpty() && reasoningOpen[0]) {
+                        appendStreamChunk(content, chunkConsumer, "</think>\n");
+                        reasoningOpen[0] = false;
+                    }
+                    if (!chunk.content().isEmpty()) {
+                        appendStreamChunk(content, chunkConsumer, chunk.content());
                     }
                 });
+            }
+            if (reasoningOpen[0]) {
+                appendStreamChunk(content, chunkConsumer, "</think>\n");
             }
             return content.toString();
         } catch (IOException exception) {
@@ -139,21 +153,48 @@ public class OpenAiCompatibleChatModelGateway implements ChatModelGateway {
         );
     }
 
-    private String readStreamChunk(String data) {
+    private StreamChunk readStreamChunk(String data) {
         try {
             JsonNode root = objectMapper.readTree(data);
-            JsonNode content = root.path("choices").path(0).path("delta").path("content");
+            JsonNode delta = root.path("choices").path(0).path("delta");
+            JsonNode reasoningContent = delta.path("reasoning_content");
+            JsonNode content = delta.path("content");
+            String reasoning = "";
+            if (!reasoningContent.isMissingNode() && !reasoningContent.isNull()) {
+                reasoning = reasoningContent.asText();
+            }
             if (!content.isMissingNode() && !content.isNull()) {
-                return content.asText();
+                return new StreamChunk(reasoning, content.asText());
             }
             JsonNode text = root.path("choices").path(0).path("text");
             if (!text.isMissingNode() && !text.isNull()) {
-                return text.asText();
+                return new StreamChunk(reasoning, text.asText());
             }
-            return "";
+            return new StreamChunk(reasoning, "");
         } catch (IOException exception) {
             throw new AgentException("Failed to parse OpenAI compatible stream chunk.", exception);
         }
+    }
+
+    private String withReasoning(JsonNode reasoningContent, String content) {
+        if (reasoningContent == null || reasoningContent.isMissingNode() || reasoningContent.isNull()) {
+            return content;
+        }
+        String reasoning = reasoningContent.asText();
+        if (reasoning.isBlank()) {
+            return content;
+        }
+        return "<think>" + reasoning + "</think>\n" + content;
+    }
+
+    private void appendStreamChunk(StringBuilder content, Consumer<String> chunkConsumer, String chunk) {
+        content.append(chunk);
+        if (chunkConsumer != null) {
+            chunkConsumer.accept(chunk);
+        }
+    }
+
+    private record StreamChunk(String reasoning, String content) {
     }
 
     private String endpoint() {
