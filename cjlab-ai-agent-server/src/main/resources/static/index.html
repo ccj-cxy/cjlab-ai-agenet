@@ -78,6 +78,7 @@
                 <span id="chatSubtitle">请先登录，然后开始 SSE 对话</span>
             </div>
             <div class="header-actions">
+                <span id="activeRoleLabel" class="role-state">默认助手</span>
                 <span id="streamState" class="stream-state idle">idle</span>
                 <button id="loadMemoryBtn" class="secondary-button" type="button">同步记忆</button>
                 <button id="clearChatBtn" class="secondary-button" type="button">清屏</button>
@@ -96,6 +97,7 @@
         <nav class="tabs" role="tablist" aria-label="调试面板">
             <button class="tab-button active" type="button" data-tab="rag">RAG</button>
             <button class="tab-button" type="button" data-tab="memory">Memory</button>
+            <button class="tab-button" type="button" data-tab="role">Role</button>
             <button class="tab-button" type="button" data-tab="tools">Tools</button>
             <button class="tab-button" type="button" data-tab="log">Log</button>
         </nav>
@@ -124,6 +126,31 @@
             </div>
             <button id="reloadMemoryBtn" class="secondary-button full-button" type="button">读取当前会话</button>
             <div id="memoryList" class="result-list">暂无数据</div>
+            <div class="panel-heading section-heading">
+                <h2>会话摘要</h2>
+                <button id="loadSummaryBtn" class="secondary-button tiny-button" type="button">读取</button>
+            </div>
+            <div id="summaryBox" class="summary-box">暂无摘要</div>
+        </section>
+
+        <section id="roleTab" class="tab-panel">
+            <div class="panel-heading">
+                <h2>角色卡</h2>
+                <button id="resetRoleCardsBtn" class="secondary-button tiny-button" type="button">重置</button>
+            </div>
+            <label for="roleCardSelect">角色</label>
+            <select id="roleCardSelect"></select>
+            <label for="roleCardName">名称</label>
+            <input id="roleCardName" type="text" value="">
+            <label for="roleCardDescription">描述</label>
+            <input id="roleCardDescription" type="text" value="">
+            <label for="roleCardInstruction">指令</label>
+            <textarea id="roleCardInstruction" rows="7"></textarea>
+            <div class="split-actions">
+                <button id="saveRoleCardBtn" class="primary-button" type="button">保存</button>
+                <button id="newRoleCardBtn" class="secondary-button" type="button">新增</button>
+            </div>
+            <div id="roleCardPreview" class="result-list">暂无数据</div>
         </section>
 
         <section id="toolsTab" class="tab-panel">

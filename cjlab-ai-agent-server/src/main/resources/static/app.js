@@ -1,10 +1,41 @@
 const AUTH_KEY = "cjlab-agent-auth";
 const CONVERSATION_KEY = "cjlab-agent-conversations";
+const ROLE_CARD_KEY = "cjlab-agent-role-cards";
+const SELECTED_ROLE_CARD_KEY = "cjlab-agent-selected-role-card";
+
+const DEFAULT_ROLE_CARDS = [
+    {
+        id: "default",
+        name: "默认助手",
+        description: "平衡、直接、可执行",
+        instruction: "用清晰、简洁、务实的方式回答。优先给结论和可执行步骤。"
+    },
+    {
+        id: "engineer",
+        name: "后端工程师",
+        description: "Java/Spring/MyBatis 工程实现优先",
+        instruction: "以资深 Java 后端工程师风格回答。优先指出模块边界、数据模型、接口契约、异常路径和验证方式。代码建议要贴近现有工程。"
+    },
+    {
+        id: "product",
+        name: "产品分析师",
+        description: "目标、用户价值、流程和优先级",
+        instruction: "以产品分析师风格回答。先澄清目标和用户场景，再按优先级拆解方案，关注体验闭环、指标和风险。"
+    },
+    {
+        id: "teacher",
+        name: "讲解老师",
+        description: "循序渐进、示例驱动",
+        instruction: "以耐心讲解老师风格回答。把复杂概念拆成小步骤，用示例解释关键点，并在最后给出简短总结。"
+    }
+];
 
 const state = {
     authMode: "login",
     auth: loadAuth(),
     conversations: [],
+    roleCards: loadRoleCards(),
+    selectedRoleCardId: localStorage.getItem(SELECTED_ROLE_CARD_KEY) || "default",
     tools: [],
     sending: false,
     lastLog: null
@@ -34,6 +65,7 @@ const els = {
     conversationList: document.querySelector("#conversationList"),
     chatTitle: document.querySelector("#chatTitle"),
     chatSubtitle: document.querySelector("#chatSubtitle"),
+    activeRoleLabel: document.querySelector("#activeRoleLabel"),
     streamState: document.querySelector("#streamState"),
     chatStream: document.querySelector("#chatStream"),
     chatForm: document.querySelector("#chatForm"),
@@ -42,8 +74,18 @@ const els = {
     clearChatBtn: document.querySelector("#clearChatBtn"),
     loadMemoryBtn: document.querySelector("#loadMemoryBtn"),
     reloadMemoryBtn: document.querySelector("#reloadMemoryBtn"),
+    loadSummaryBtn: document.querySelector("#loadSummaryBtn"),
     memoryLimit: document.querySelector("#memoryLimit"),
     memoryList: document.querySelector("#memoryList"),
+    summaryBox: document.querySelector("#summaryBox"),
+    roleCardSelect: document.querySelector("#roleCardSelect"),
+    roleCardName: document.querySelector("#roleCardName"),
+    roleCardDescription: document.querySelector("#roleCardDescription"),
+    roleCardInstruction: document.querySelector("#roleCardInstruction"),
+    saveRoleCardBtn: document.querySelector("#saveRoleCardBtn"),
+    newRoleCardBtn: document.querySelector("#newRoleCardBtn"),
+    resetRoleCardsBtn: document.querySelector("#resetRoleCardsBtn"),
+    roleCardPreview: document.querySelector("#roleCardPreview"),
     knowledgeTitle: document.querySelector("#knowledgeTitle"),
     knowledgeContent: document.querySelector("#knowledgeContent"),
     saveKnowledgeBtn: document.querySelector("#saveKnowledgeBtn"),
@@ -79,6 +121,80 @@ function saveAuth(auth) {
         localStorage.removeItem(AUTH_KEY);
     }
     renderAuth();
+}
+
+function loadRoleCards() {
+    try {
+        const cards = JSON.parse(localStorage.getItem(ROLE_CARD_KEY) || "null");
+        if (Array.isArray(cards) && cards.length > 0) {
+            return cards;
+        }
+    } catch {
+        // Fall back to built-in role cards.
+    }
+    return DEFAULT_ROLE_CARDS.map(card => ({ ...card }));
+}
+
+function saveRoleCards() {
+    localStorage.setItem(ROLE_CARD_KEY, JSON.stringify(state.roleCards));
+}
+
+function mergeRoleCards(baseCards, persistedCards) {
+    const merged = new Map();
+    baseCards.forEach(card => merged.set(card.id, { ...card }));
+    (persistedCards || []).forEach(card => {
+        if (card?.id) {
+            merged.set(card.id, {
+                id: card.id,
+                name: card.name,
+                description: card.description || "",
+                instruction: card.instruction || "",
+                updatedAt: card.updatedAt || null
+            });
+        }
+    });
+    return Array.from(merged.values());
+}
+
+async function loadPersistedRoleCards() {
+    if (!isSignedIn()) {
+        return;
+    }
+    const data = await requestJson("GET", "/api/role-cards");
+    state.roleCards = mergeRoleCards(DEFAULT_ROLE_CARDS, data);
+    saveRoleCards();
+    renderRoleCards();
+}
+
+async function persistRoleCard(card) {
+    if (!isSignedIn()) {
+        return card;
+    }
+    return await requestJson("POST", "/api/role-cards", {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        instruction: card.instruction
+    });
+}
+
+function selectedRoleCard() {
+    return state.roleCards.find(card => card.id === state.selectedRoleCardId)
+        || state.roleCards[0]
+        || DEFAULT_ROLE_CARDS[0];
+}
+
+function roleCardPayload() {
+    const card = selectedRoleCard();
+    if (!card) {
+        return null;
+    }
+    return {
+        id: card.id,
+        name: card.name,
+        description: card.description,
+        instruction: card.instruction
+    };
 }
 
 function authHeaders() {
@@ -302,6 +418,7 @@ function renderAuth() {
     els.sendChatBtn.disabled = !signedIn || state.sending;
     els.loadMemoryBtn.disabled = !signedIn;
     els.reloadMemoryBtn.disabled = !signedIn;
+    els.loadSummaryBtn.disabled = !signedIn;
     els.saveKnowledgeBtn.disabled = !signedIn;
     els.listKnowledgeBtn.disabled = !signedIn;
     els.searchKnowledgeBtn.disabled = !signedIn;
@@ -338,6 +455,7 @@ async function submitAuth(event) {
         const login = await requestJson("POST", "/api/users/login", { email, password }, { auth: false });
         saveAuth(login);
         setStatus("登录成功", "ok");
+        await loadPersistedRoleCards();
         await loadTools();
     } catch (error) {
         setStatus(`失败: ${error.message}`, "error");
@@ -355,6 +473,7 @@ async function verifyCurrentUser() {
         const user = await requestJson("GET", "/api/users/me");
         saveAuth({ ...state.auth, user });
         setStatus("登录态有效", "ok");
+        await loadPersistedRoleCards();
         await loadTools();
     } catch {
         saveAuth(null);
@@ -404,11 +523,126 @@ function renderConversations() {
     `).join("");
 }
 
+function renderRoleCards() {
+    if (!state.roleCards.some(card => card.id === state.selectedRoleCardId)) {
+        state.selectedRoleCardId = state.roleCards[0]?.id || "default";
+    }
+    els.roleCardSelect.innerHTML = state.roleCards.map(card => `
+        <option value="${escapeHtml(card.id)}" ${card.id === state.selectedRoleCardId ? "selected" : ""}>
+            ${escapeHtml(card.name || card.id)}
+        </option>
+    `).join("");
+    renderRoleCardEditor();
+}
+
+function renderRoleCardEditor() {
+    const card = selectedRoleCard();
+    els.roleCardName.value = card?.name || "";
+    els.roleCardDescription.value = card?.description || "";
+    els.roleCardInstruction.value = card?.instruction || "";
+    els.activeRoleLabel.textContent = card?.name || "默认助手";
+    els.roleCardPreview.innerHTML = card ? `
+        <div class="result-item">
+            <div class="result-title"><span>${escapeHtml(card.name)}</span><span>${escapeHtml(card.id)}</span></div>
+            <div class="result-meta">${escapeHtml(card.description)}</div>
+            <div class="result-content">${escapeHtml(card.instruction)}</div>
+        </div>
+    ` : "暂无数据";
+}
+
+function selectRoleCard(id) {
+    state.selectedRoleCardId = id;
+    localStorage.setItem(SELECTED_ROLE_CARD_KEY, id);
+    renderRoleCards();
+}
+
+function normalizeRoleId(value) {
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 48);
+    return normalized || `role-${Date.now()}`;
+}
+
+async function saveCurrentRoleCard() {
+    setBusy(els.saveRoleCardBtn, true);
+    const current = selectedRoleCard();
+    try {
+        const name = els.roleCardName.value.trim() || "未命名角色";
+        const id = current?.id || normalizeRoleId(name);
+        const next = {
+            id,
+            name,
+            description: els.roleCardDescription.value.trim(),
+            instruction: els.roleCardInstruction.value.trim()
+        };
+        const saved = await persistRoleCard(next);
+        const normalized = {
+            ...next,
+            id: saved?.id || next.id,
+            name: saved?.name || next.name,
+            description: saved?.description || next.description,
+            instruction: saved?.instruction || next.instruction,
+            updatedAt: saved?.updatedAt || null
+        };
+        const index = state.roleCards.findIndex(card => card.id === id || card.id === normalized.id);
+        if (index >= 0) {
+            state.roleCards.splice(index, 1, normalized);
+        } else {
+            state.roleCards.push(normalized);
+        }
+        state.selectedRoleCardId = normalized.id;
+        saveRoleCards();
+        localStorage.setItem(SELECTED_ROLE_CARD_KEY, normalized.id);
+        renderRoleCards();
+    } finally {
+        setBusy(els.saveRoleCardBtn, false);
+    }
+}
+
+function newRoleCard() {
+    const id = `role-${Date.now()}`;
+    state.roleCards.push({
+        id,
+        name: "自定义角色",
+        description: "",
+        instruction: ""
+    });
+    state.selectedRoleCardId = id;
+    saveRoleCards();
+    localStorage.setItem(SELECTED_ROLE_CARD_KEY, id);
+    renderRoleCards();
+    els.roleCardName.focus();
+}
+
+async function resetRoleCards() {
+    setBusy(els.resetRoleCardsBtn, true);
+    state.roleCards = DEFAULT_ROLE_CARDS.map(card => ({ ...card }));
+    state.selectedRoleCardId = "default";
+    try {
+        if (isSignedIn()) {
+            const savedCards = [];
+            for (const card of DEFAULT_ROLE_CARDS) {
+                savedCards.push(await persistRoleCard(card));
+            }
+            state.roleCards = mergeRoleCards(DEFAULT_ROLE_CARDS, savedCards);
+        }
+        saveRoleCards();
+        localStorage.setItem(SELECTED_ROLE_CARD_KEY, state.selectedRoleCardId);
+        renderRoleCards();
+    } finally {
+        setBusy(els.resetRoleCardsBtn, false);
+    }
+}
+
 function setConversation(id) {
     els.conversationId.value = id;
     els.chatTitle.textContent = id;
     renderConversations();
     loadMemory(true);
+    loadSummary();
 }
 
 function newConversation() {
@@ -571,7 +805,7 @@ async function sendChat(event) {
     try {
         let streamedContent = "";
         let deltaCount = 0;
-        await requestChatStream({ conversationId: id, message }, {
+        await requestChatStream({ conversationId: id, message, roleCard: roleCardPayload() }, {
             start: data => {
                 setStreamState("connected", "streaming");
                 if (data.conversationId) {
@@ -592,6 +826,7 @@ async function sendChat(event) {
         });
         els.chatSubtitle.textContent = "ready";
         await loadMemory(false);
+        await loadSummary();
     } catch (error) {
         updateMessage(pendingRow, `请求失败: ${error.message}`, false);
         els.chatSubtitle.textContent = "error";
@@ -624,6 +859,9 @@ function renderMemoryToChat(messages) {
 }
 
 async function loadMemory(renderChat = false) {
+    if (!isSignedIn()) {
+        return;
+    }
     const button = renderChat ? els.loadMemoryBtn : els.reloadMemoryBtn;
     setBusy(button, true);
     try {
@@ -640,6 +878,33 @@ async function loadMemory(renderChat = false) {
         }
     } finally {
         setBusy(button, false);
+    }
+}
+
+async function loadSummary() {
+    if (!isSignedIn()) {
+        return;
+    }
+    setBusy(els.loadSummaryBtn, true);
+    try {
+        const data = await requestJson("GET", `/api/memory/${encodeURIComponent(currentConversationId())}/summary`);
+        if (!data?.content) {
+            els.summaryBox.textContent = "暂无摘要";
+            return;
+        }
+        const updatedAt = data.updatedAt ? new Date(data.updatedAt).toLocaleString("zh-CN") : "-";
+        els.summaryBox.innerHTML = `
+            <div class="summary-meta">
+                <span>${escapeHtml(data.conversationId)}</span>
+                <span>${escapeHtml(data.messageCount)} messages</span>
+                <span>${escapeHtml(updatedAt)}</span>
+            </div>
+            <div class="summary-content">${escapeHtml(data.content)}</div>
+        `;
+    } catch (error) {
+        els.summaryBox.textContent = `读取失败: ${error.message}`;
+    } finally {
+        setBusy(els.loadSummaryBtn, false);
     }
 }
 
@@ -693,6 +958,7 @@ async function loadTools() {
     try {
         state.tools = await requestJson("GET", "/api/tools");
         els.toolSelect.innerHTML = state.tools.map(tool => `<option value="${escapeHtml(tool.name)}">${escapeHtml(tool.name)}</option>`).join("");
+        applyToolPreset();
         renderResultList(els.toolResult, state.tools, tool => `
             <div class="result-item">
                 <div class="result-title"><span>${escapeHtml(tool.name)}</span></div>
@@ -701,6 +967,16 @@ async function loadTools() {
         `);
     } finally {
         setBusy(els.loadToolsBtn, false);
+    }
+}
+
+function applyToolPreset() {
+    if (els.toolSelect.value === "web_search") {
+        els.toolInput.value = "CJLab AI Agent";
+        els.toolArguments.value = pretty({ query: "CJLab AI Agent", limit: 5 });
+    } else if (els.toolSelect.value === "current_time") {
+        els.toolInput.value = "now";
+        els.toolArguments.value = "{}";
     }
 }
 
@@ -782,10 +1058,16 @@ els.chatStream.addEventListener("click", event => {
 els.clearChatBtn.addEventListener("click", showEmptyChat);
 els.loadMemoryBtn.addEventListener("click", () => loadMemory(true));
 els.reloadMemoryBtn.addEventListener("click", () => loadMemory(false));
+els.loadSummaryBtn.addEventListener("click", loadSummary);
+els.roleCardSelect.addEventListener("change", () => selectRoleCard(els.roleCardSelect.value));
+els.saveRoleCardBtn.addEventListener("click", saveCurrentRoleCard);
+els.newRoleCardBtn.addEventListener("click", newRoleCard);
+els.resetRoleCardsBtn.addEventListener("click", resetRoleCards);
 els.saveKnowledgeBtn.addEventListener("click", saveKnowledge);
 els.listKnowledgeBtn.addEventListener("click", listKnowledge);
 els.searchKnowledgeBtn.addEventListener("click", searchKnowledge);
 els.loadToolsBtn.addEventListener("click", loadTools);
+els.toolSelect.addEventListener("change", applyToolPreset);
 els.executeToolBtn.addEventListener("click", executeTool);
 els.clearLogBtn.addEventListener("click", () => {
     els.requestLog.textContent = "等待请求";
@@ -796,6 +1078,7 @@ switchAuthMode("login");
 renderAuth();
 loadConversations();
 renderConversations();
+renderRoleCards();
 showEmptyChat();
 autoResizeComposer();
 loadRuntime();

@@ -3,10 +3,11 @@ package io.github.cjlab.agent.server.api;
 import io.github.cjlab.agent.core.chat.AgentService;
 import io.github.cjlab.agent.core.chat.ChatRequest;
 import io.github.cjlab.agent.core.chat.ChatResponse;
+import io.github.cjlab.agent.core.chat.ChatRoleCard;
 import io.github.cjlab.agent.core.chat.ChatUser;
 import io.github.cjlab.agent.server.security.CurrentUser;
-import io.github.cjlab.agent.server.security.UserConversationIds;
 import io.github.cjlab.agent.server.security.CurrentUserContext;
+import io.github.cjlab.agent.server.security.UserConversationIds;
 import jakarta.annotation.PreDestroy;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -70,11 +71,7 @@ public class ChatController {
 
     private ChatResponse chatForCurrentUser(ChatRequest request, CurrentUser user) {
         String externalConversationId = UserConversationIds.external(request == null ? null : request.conversationId());
-        ChatResponse response = agentService.chat(new ChatRequest(
-                UserConversationIds.internal(user.id(), externalConversationId),
-                request == null ? null : request.message(),
-                toChatUser(user)
-        ));
+        ChatResponse response = agentService.chat(toInternalRequest(request, user, externalConversationId));
         return new ChatResponse(externalConversationId, response.content());
     }
 
@@ -84,12 +81,18 @@ public class ChatController {
             java.util.function.Consumer<String> chunkConsumer
     ) {
         String externalConversationId = UserConversationIds.external(request == null ? null : request.conversationId());
-        ChatResponse response = agentService.streamChat(new ChatRequest(
+        ChatResponse response = agentService.streamChat(toInternalRequest(request, user, externalConversationId), chunkConsumer);
+        return new ChatResponse(externalConversationId, response.content());
+    }
+
+    private ChatRequest toInternalRequest(ChatRequest request, CurrentUser user, String externalConversationId) {
+        return new ChatRequest(
                 UserConversationIds.internal(user.id(), externalConversationId),
                 request == null ? null : request.message(),
-                toChatUser(user)
-        ), chunkConsumer);
-        return new ChatResponse(externalConversationId, response.content());
+                toChatUser(user),
+                sanitizeRoleCard(request == null ? null : request.roleCard()),
+                null
+        );
     }
 
     private ChatUser toChatUser(CurrentUser user) {
@@ -99,6 +102,35 @@ public class ChatController {
                 user.displayName(),
                 user.status() == null ? null : user.status().name()
         );
+    }
+
+    private ChatRoleCard sanitizeRoleCard(ChatRoleCard roleCard) {
+        if (roleCard == null) {
+            return null;
+        }
+        String name = trimToNull(roleCard.name(), 80);
+        String description = trimToNull(roleCard.description(), 240);
+        String instruction = trimToNull(roleCard.instruction(), 1200);
+        if (name == null && description == null && instruction == null) {
+            return null;
+        }
+        return new ChatRoleCard(
+                trimToNull(roleCard.id(), 64),
+                name,
+                description,
+                instruction
+        );
+    }
+
+    private String trimToNull(String value, int maxLength) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() <= maxLength) {
+            return trimmed;
+        }
+        return trimmed.substring(0, maxLength);
     }
 
     private void send(SseEmitter emitter, String eventName, ChatStreamEvent event) throws IOException {

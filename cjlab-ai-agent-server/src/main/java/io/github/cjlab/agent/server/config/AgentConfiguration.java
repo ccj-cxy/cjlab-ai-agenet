@@ -13,8 +13,11 @@ import io.github.cjlab.agent.infrastructure.agentscope.AgentScopeAgentRuntime;
 import io.github.cjlab.agent.infrastructure.llm.OpenAiCompatibleChatModelGateway;
 import io.github.cjlab.agent.infrastructure.llm.SpringAiChatModelGateway;
 import io.github.cjlab.agent.memory.ConversationMemory;
+import io.github.cjlab.agent.memory.ConversationSummaryRepository;
 import io.github.cjlab.agent.memory.persistence.mapper.ConversationMessageMapper;
+import io.github.cjlab.agent.memory.persistence.mapper.ConversationSummaryMapper;
 import io.github.cjlab.agent.memory.repository.mybatis.MyBatisPlusConversationMemory;
+import io.github.cjlab.agent.memory.repository.mybatis.MyBatisPlusConversationSummaryRepository;
 import io.github.cjlab.agent.rag.Bm25KnowledgeRetriever;
 import io.github.cjlab.agent.rag.KnowledgeRepository;
 import io.github.cjlab.agent.rag.KnowledgeRetriever;
@@ -28,16 +31,20 @@ import io.github.cjlab.agent.tool.RuleBasedToolOrchestrator;
 import io.github.cjlab.agent.tool.ToolCallRecordRepository;
 import io.github.cjlab.agent.tool.ToolOrchestrator;
 import io.github.cjlab.agent.tool.ToolRegistry;
+import io.github.cjlab.agent.tool.WebSearchTool;
 import io.github.cjlab.agent.tool.persistence.mapper.ToolCallRecordMapper;
 import io.github.cjlab.agent.tool.repository.mybatis.MyBatisPlusToolCallRecordRepository;
 import io.github.cjlab.agent.user.PasswordHasher;
 import io.github.cjlab.agent.user.Pbkdf2PasswordHasher;
 import io.github.cjlab.agent.user.UserRepository;
+import io.github.cjlab.agent.user.UserRoleCardRepository;
 import io.github.cjlab.agent.user.UserService;
 import io.github.cjlab.agent.user.UserSessionService;
 import io.github.cjlab.agent.user.persistence.mapper.UserAccountMapper;
+import io.github.cjlab.agent.user.persistence.mapper.UserRoleCardMapper;
 import io.github.cjlab.agent.user.persistence.mapper.UserSessionMapper;
 import io.github.cjlab.agent.user.repository.mybatis.MyBatisPlusUserRepository;
+import io.github.cjlab.agent.user.repository.mybatis.MyBatisPlusUserRoleCardRepository;
 import io.github.cjlab.agent.user.repository.mybatis.MyBatisPlusUserSessionService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.ai.chat.client.ChatClient;
@@ -78,6 +85,11 @@ public class AgentConfiguration {
     }
 
     @Bean
+    public ConversationSummaryRepository conversationSummaryRepository(ConversationSummaryMapper conversationSummaryMapper) {
+        return new MyBatisPlusConversationSummaryRepository(conversationSummaryMapper);
+    }
+
+    @Bean
     public KnowledgeRepository knowledgeRepository(KnowledgeDocumentMapper knowledgeDocumentMapper) {
         return new MyBatisPlusKnowledgeRepository(knowledgeDocumentMapper);
     }
@@ -95,7 +107,10 @@ public class AgentConfiguration {
     @Bean
     public ToolRegistry toolRegistry(ToolCallRecordRepository toolCallRecordRepository) {
         return new PersistentToolRegistry(
-                new InMemoryToolRegistry(List.of(new CurrentTimeTool())),
+                new InMemoryToolRegistry(List.of(
+                        new CurrentTimeTool(),
+                        new WebSearchTool()
+                )),
                 toolCallRecordRepository
         );
     }
@@ -108,6 +123,11 @@ public class AgentConfiguration {
     @Bean
     public UserRepository userRepository(UserAccountMapper userAccountMapper) {
         return new MyBatisPlusUserRepository(userAccountMapper);
+    }
+
+    @Bean
+    public UserRoleCardRepository userRoleCardRepository(UserRoleCardMapper userRoleCardMapper) {
+        return new MyBatisPlusUserRoleCardRepository(userRoleCardMapper);
     }
 
     @Bean
@@ -174,7 +194,12 @@ public class AgentConfiguration {
     }
 
     @Bean
-    public AgentService agentService(ConversationMemory conversationMemory, AgentRuntime agentRuntime) {
-        return new DefaultAgentService(conversationMemory, agentRuntime);
+    public AgentService agentService(
+            ConversationMemory conversationMemory,
+            AgentRuntime agentRuntime,
+            ConversationSummaryRepository conversationSummaryRepository,
+            ChatModelGateway chatModelGateway
+    ) {
+        return new DefaultAgentService(conversationMemory, agentRuntime, conversationSummaryRepository, chatModelGateway);
     }
 }

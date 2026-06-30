@@ -38,6 +38,27 @@ CREATE TABLE IF NOT EXISTS cjlab_user_session (
         ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS cjlab_user_role_card (
+    id VARCHAR(160) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    role_id VARCHAR(64) NOT NULL,
+    name VARCHAR(80) NOT NULL,
+    description VARCHAR(240) NULL,
+    instruction TEXT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    creator VARCHAR(64) NULL,
+    updater VARCHAR(64) NULL,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_cjlab_user_role_card_user_role (user_id, role_id),
+    KEY idx_cjlab_user_role_card_user_update_time (user_id, update_time),
+    CONSTRAINT fk_cjlab_user_role_card_user
+        FOREIGN KEY (user_id)
+        REFERENCES cjlab_user_account (id)
+        ON DELETE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS cjlab_conversation_message (
     id VARCHAR(64) NOT NULL,
     conversation_id VARCHAR(255) NOT NULL,
@@ -50,6 +71,19 @@ CREATE TABLE IF NOT EXISTS cjlab_conversation_message (
     deleted TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     KEY idx_cjlab_conversation_message_conversation_created (conversation_id, create_time)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS cjlab_conversation_summary (
+    conversation_id VARCHAR(255) NOT NULL,
+    content LONGTEXT NOT NULL,
+    message_count INT NOT NULL DEFAULT 0,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    creator VARCHAR(64) NULL,
+    updater VARCHAR(64) NULL,
+    deleted TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (conversation_id),
+    KEY idx_cjlab_conversation_summary_update_time (update_time)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS cjlab_knowledge_document (

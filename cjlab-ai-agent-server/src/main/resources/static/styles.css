@@ -355,6 +355,24 @@ pre {
     font-weight: 800;
 }
 
+.role-state {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 128px;
+    min-height: 30px;
+    border: 1px solid #bfd7ff;
+    border-radius: 999px;
+    padding: 0 10px;
+    overflow: hidden;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .stream-state.ready {
     border-color: #9ed7c5;
     background: #ecfdf3;
@@ -541,7 +559,7 @@ pre {
 
 .tabs {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 6px;
     padding: 10px;
     border-bottom: 1px solid var(--line);
@@ -582,6 +600,19 @@ pre {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
     margin-top: 10px;
+}
+
+.split-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.section-heading {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
 }
 
 .result-list {
@@ -636,6 +667,42 @@ pre {
     word-break: break-word;
 }
 
+.summary-box {
+    min-height: 120px;
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-soft);
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.summary-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.summary-meta span {
+    min-height: 22px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 2px 8px;
+    background: #ffffff;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.summary-content {
+    color: #344054;
+}
+
 #requestLog {
     padding: 12px;
     border: 1px solid var(--line);
@@ -680,6 +747,11 @@ pre {
     .header-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
+    }
+
+    .role-state,
+    .stream-state {
+        max-width: none;
     }
 
     .message {

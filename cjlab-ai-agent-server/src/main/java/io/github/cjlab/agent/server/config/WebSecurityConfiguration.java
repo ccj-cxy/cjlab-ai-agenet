@@ -22,6 +22,7 @@ public class WebSecurityConfiguration implements WebMvcConfigurer {
                         "/api/chat/**",
                         "/api/memory/**",
                         "/api/knowledge/**",
+                        "/api/role-cards/**",
                         "/api/tools/**",
                         "/api/users/me"
                 );

@@ -2,6 +2,8 @@ package io.github.cjlab.agent.server.api;
 
 import io.github.cjlab.agent.memory.ConversationMemory;
 import io.github.cjlab.agent.memory.ConversationMessage;
+import io.github.cjlab.agent.memory.ConversationSummary;
+import io.github.cjlab.agent.memory.ConversationSummaryRepository;
 import io.github.cjlab.agent.server.security.CurrentUser;
 import io.github.cjlab.agent.server.security.CurrentUserContext;
 import io.github.cjlab.agent.server.security.UserConversationIds;
@@ -18,9 +20,14 @@ import java.util.List;
 public class MemoryController {
 
     private final ConversationMemory conversationMemory;
+    private final ConversationSummaryRepository conversationSummaryRepository;
 
-    public MemoryController(ConversationMemory conversationMemory) {
+    public MemoryController(
+            ConversationMemory conversationMemory,
+            ConversationSummaryRepository conversationSummaryRepository
+    ) {
         this.conversationMemory = conversationMemory;
+        this.conversationSummaryRepository = conversationSummaryRepository;
     }
 
     @GetMapping("/{conversationId}")
@@ -39,5 +46,28 @@ public class MemoryController {
                         message.createdAt()
                 ))
                 .toList();
+    }
+
+    @GetMapping("/{conversationId}/summary")
+    public ConversationSummaryResponse summary(@PathVariable String conversationId) {
+        CurrentUser user = CurrentUserContext.required();
+        String externalConversationId = UserConversationIds.external(conversationId);
+        ConversationSummary summary = conversationSummaryRepository
+                .findByConversationId(UserConversationIds.internal(user.id(), externalConversationId))
+                .orElse(null);
+        return new ConversationSummaryResponse(
+                externalConversationId,
+                summary == null ? "" : summary.content(),
+                summary == null ? 0 : summary.messageCount(),
+                summary == null ? null : summary.updatedAt()
+        );
+    }
+
+    public record ConversationSummaryResponse(
+            String conversationId,
+            String content,
+            int messageCount,
+            java.time.Instant updatedAt
+    ) {
     }
 }
