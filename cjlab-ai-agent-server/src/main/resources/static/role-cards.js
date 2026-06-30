@@ -270,6 +270,7 @@ function mergeRoleCards(baseCards, persistedCards) {
                 name: card.name,
                 description: card.description || "",
                 instruction: card.instruction || "",
+                avatar: card.avatar || "",
                 updatedAt: card.updatedAt || null,
                 source: "database"
             });
@@ -317,8 +318,11 @@ function renderRoleCards() {
     }
     els.list.innerHTML = state.roleCards.map(card => `
         <button class="role-card-list-item ${card.id === state.selectedRoleId ? "active" : ""}" type="button" data-id="${escapeHtml(card.id)}">
-            <span class="role-card-name">${escapeHtml(card.name || card.id)}</span>
-            <span class="role-card-id">${escapeHtml(card.id)} · ${escapeHtml(card.source || "local")}</span>
+            ${roleAvatarHtml(card)}
+            <span class="role-card-list-text">
+                <span class="role-card-name">${escapeHtml(card.name || card.id)}</span>
+                <span class="role-card-id">${escapeHtml(card.id)} · ${escapeHtml(card.source || "local")}</span>
+            </span>
         </button>
     `).join("");
     renderEditor(selectedRoleCard());
@@ -328,8 +332,10 @@ function renderEditor(card) {
     if (!card) {
         els.idInput.value = "";
         els.nameInput.value = "";
+        els.avatarInput.value = "";
         els.descriptionInput.value = "";
         els.instructionInput.value = "";
+        renderAvatarPreview(null);
         els.previewId.textContent = "-";
         els.previewBox.textContent = "暂无数据";
         els.updatedAt.textContent = "-";
@@ -337,8 +343,10 @@ function renderEditor(card) {
     }
     els.idInput.value = card.id || "";
     els.nameInput.value = card.name || "";
+    els.avatarInput.value = card.avatar || "";
     els.descriptionInput.value = card.description || "";
     els.instructionInput.value = card.instruction || "";
+    renderAvatarPreview(card);
     els.updatedAt.textContent = card.updatedAt ? new Date(card.updatedAt).toLocaleString("zh-CN") : "未保存到数据库";
     renderPreview();
     state.dirty = false;
@@ -347,12 +355,18 @@ function renderEditor(card) {
 function renderPreview() {
     const id = normalizeId(els.idInput.value || els.nameInput.value);
     const name = els.nameInput.value.trim() || "未命名角色";
+    const avatar = els.avatarInput.value.trim();
     const description = els.descriptionInput.value.trim();
     const instruction = els.instructionInput.value.trim();
+    const card = { id, name, avatar };
     els.previewId.textContent = id;
+    renderAvatarPreview(card);
     els.previewBox.innerHTML = `
         <div class="result-item">
-            <div class="result-title"><span>${escapeHtml(name)}</span><span>${escapeHtml(id)}</span></div>
+            <div class="result-title">
+                <span class="role-preview-heading">${roleAvatarHtml(card)}<span>${escapeHtml(name)}</span></span>
+                <span>${escapeHtml(id)}</span>
+            </div>
             <div class="result-meta">${escapeHtml(description || "-")}</div>
             <div class="result-content">${escapeHtml(instruction || "-")}</div>
         </div>
@@ -371,7 +385,8 @@ function editorCard() {
         id: normalizeId(els.idInput.value || els.nameInput.value),
         name: els.nameInput.value.trim() || "未命名角色",
         description: els.descriptionInput.value.trim(),
-        instruction: els.instructionInput.value.trim()
+        instruction: els.instructionInput.value.trim(),
+        avatar: els.avatarInput.value.trim()
     };
 }
 
@@ -382,6 +397,7 @@ function newRoleCard() {
         name: "自定义角色",
         description: "",
         instruction: "",
+        avatar: "",
         source: "local"
     };
     state.roleCards.unshift(card);
@@ -489,6 +505,47 @@ function markDirty() {
     setStatus(els.editorStatus, "有未保存修改");
 }
 
+function readAvatarFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(reader.error || new Error("头像读取失败"));
+        reader.readAsDataURL(file);
+    });
+}
+
+async function selectAvatarFile() {
+    const file = els.avatarFileInput.files?.[0];
+    if (!file) {
+        return;
+    }
+    if (!file.type.startsWith("image/")) {
+        setStatus(els.editorStatus, "请选择图片文件", "error");
+        els.avatarFileInput.value = "";
+        return;
+    }
+    if (file.size > 160 * 1024) {
+        setStatus(els.editorStatus, "头像图片不能超过 160KB", "error");
+        els.avatarFileInput.value = "";
+        return;
+    }
+    try {
+        els.avatarInput.value = await readAvatarFile(file);
+        markDirty();
+        setStatus(els.editorStatus, "头像已载入，保存后入库");
+    } catch (error) {
+        setStatus(els.editorStatus, `头像读取失败: ${error.message}`, "error");
+    } finally {
+        els.avatarFileInput.value = "";
+    }
+}
+
+function clearAvatar() {
+    els.avatarInput.value = "";
+    markDirty();
+    setStatus(els.editorStatus, "头像已清除，保存后生效");
+}
+
 els.loginModeBtn.addEventListener("click", () => switchAuthMode("login"));
 els.registerModeBtn.addEventListener("click", () => switchAuthMode("register"));
 els.authForm.addEventListener("submit", submitAuth);
@@ -499,13 +556,15 @@ els.newBtn.addEventListener("click", newRoleCard);
 els.duplicateBtn.addEventListener("click", duplicateRoleCard);
 els.deleteBtn.addEventListener("click", deleteRoleCard);
 els.saveBtn.addEventListener("click", saveRoleCard);
+els.avatarFileInput.addEventListener("change", selectAvatarFile);
+els.clearAvatarBtn.addEventListener("click", clearAvatar);
 els.list.addEventListener("click", event => {
     const item = event.target.closest(".role-card-list-item");
     if (item) {
         selectRole(item.dataset.id);
     }
 });
-[els.idInput, els.nameInput, els.descriptionInput, els.instructionInput]
+[els.idInput, els.nameInput, els.avatarInput, els.descriptionInput, els.instructionInput]
     .forEach(input => input.addEventListener("input", markDirty));
 
 switchAuthMode("login");
