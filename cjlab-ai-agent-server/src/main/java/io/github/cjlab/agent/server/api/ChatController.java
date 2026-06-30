@@ -9,6 +9,8 @@ import io.github.cjlab.agent.server.security.CurrentUser;
 import io.github.cjlab.agent.server.security.CurrentUserContext;
 import io.github.cjlab.agent.server.security.UserConversationIds;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +26,8 @@ import java.util.concurrent.Executors;
 @RequestMapping("/api/chat")
 public class ChatController {
 
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
+
     private final AgentService agentService;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -33,17 +37,58 @@ public class ChatController {
 
     @PostMapping
     public ChatResponse chat(@RequestBody ChatRequest request) {
-        return chatForCurrentUser(request, CurrentUserContext.required());
+        CurrentUser user = CurrentUserContext.required();
+        long startedAt = System.currentTimeMillis();
+        String externalConversationId = UserConversationIds.external(request == null ? null : request.conversationId());
+        ChatRoleCard roleCard = sanitizeRoleCard(request == null ? null : request.roleCard());
+        log.info(
+                "chat.execute_start userId={} conversationId={} roleId={} messageLength={}",
+                user.id(),
+                externalConversationId,
+                roleCard == null ? "none" : roleCard.id(),
+                request == null || request.message() == null ? 0 : request.message().length()
+        );
+        try {
+            ChatResponse response = chatForCurrentUser(request, user);
+            log.info(
+                    "chat.execute_done userId={} conversationId={} roleId={} responseLength={} elapsedMs={}",
+                    user.id(),
+                    externalConversationId,
+                    roleCard == null ? "none" : roleCard.id(),
+                    response.content() == null ? 0 : response.content().length(),
+                    System.currentTimeMillis() - startedAt
+            );
+            return response;
+        } catch (RuntimeException exception) {
+            log.error(
+                    "chat.execute_error userId={} conversationId={} roleId={} elapsedMs={}",
+                    user.id(),
+                    externalConversationId,
+                    roleCard == null ? "none" : roleCard.id(),
+                    System.currentTimeMillis() - startedAt,
+                    exception
+            );
+            throw exception;
+        }
     }
 
     @PostMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(@RequestBody ChatRequest request) {
         SseEmitter emitter = new SseEmitter(120_000L);
         CurrentUser user = CurrentUserContext.required();
+        long startedAt = System.currentTimeMillis();
+        String externalConversationId = UserConversationIds.external(request == null ? null : request.conversationId());
+        ChatRoleCard roleCard = sanitizeRoleCard(request == null ? null : request.roleCard());
+        log.info(
+                "chat.stream_start userId={} conversationId={} roleId={} messageLength={}",
+                user.id(),
+                externalConversationId,
+                roleCard == null ? "none" : roleCard.id(),
+                request == null || request.message() == null ? 0 : request.message().length()
+        );
         executorService.execute(() -> {
             try {
                 CurrentUserContext.set(user);
-                String externalConversationId = UserConversationIds.external(request == null ? null : request.conversationId());
                 send(emitter, "start", new ChatStreamEvent(externalConversationId, ""));
                 ChatResponse response = streamChatForCurrentUser(request, user, chunk -> sendUnchecked(
                         emitter,
@@ -51,8 +96,24 @@ public class ChatController {
                         new ChatStreamEvent(externalConversationId, chunk)
                 ));
                 send(emitter, "done", new ChatStreamEvent(response.conversationId(), response.content()));
+                log.info(
+                        "chat.stream_done userId={} conversationId={} roleId={} responseLength={} elapsedMs={}",
+                        user.id(),
+                        externalConversationId,
+                        roleCard == null ? "none" : roleCard.id(),
+                        response.content() == null ? 0 : response.content().length(),
+                        System.currentTimeMillis() - startedAt
+                );
                 emitter.complete();
             } catch (Exception exception) {
+                log.error(
+                        "chat.stream_error userId={} conversationId={} roleId={} elapsedMs={}",
+                        user.id(),
+                        externalConversationId,
+                        roleCard == null ? "none" : roleCard.id(),
+                        System.currentTimeMillis() - startedAt,
+                        exception
+                );
                 try {
                     send(emitter, "error", new ChatStreamEvent(
                             request == null ? null : request.conversationId(),

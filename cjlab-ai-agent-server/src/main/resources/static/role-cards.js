@@ -158,6 +158,7 @@ function setStatus(target, message, type = "") {
 }
 
 async function requestJson(method, path, body, options = {}) {
+    const startedAt = new Date().toISOString();
     const headers = {
         Accept: "application/json",
         ...(options.auth === false ? {} : authHeaders())
@@ -170,10 +171,32 @@ async function requestJson(method, path, body, options = {}) {
     const response = await fetch(path, init);
     const text = await response.text();
     const payload = text ? JSON.parse(text) : null;
+    console.info("[cjlab-agent]", sanitizeConsoleLog({
+        startedAt,
+        method,
+        path,
+        status: response.status,
+        ok: response.ok,
+        request: body ?? null,
+        response: payload
+    }));
     if (!response.ok) {
         throw new Error(payload?.message || payload?.error || `HTTP ${response.status}`);
     }
     return payload;
+}
+
+function sanitizeConsoleLog(entry) {
+    const safeEntry = JSON.parse(JSON.stringify(entry ?? {}));
+    if (String(safeEntry.path || "").startsWith("/api/users/")) {
+        if (safeEntry.request?.password) {
+            safeEntry.request.password = "***";
+        }
+        if (safeEntry.response?.accessToken) {
+            safeEntry.response.accessToken = "***";
+        }
+    }
+    return safeEntry;
 }
 
 function switchAuthMode(mode) {

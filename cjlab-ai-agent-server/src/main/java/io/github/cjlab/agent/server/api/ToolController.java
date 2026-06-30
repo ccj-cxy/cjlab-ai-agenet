@@ -10,6 +10,8 @@ import io.github.cjlab.agent.tool.ToolCallRecordRepository;
 import io.github.cjlab.agent.tool.ToolRegistry;
 import io.github.cjlab.agent.tool.ToolRequest;
 import io.github.cjlab.agent.tool.ToolResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +25,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/tools")
 public class ToolController {
+
+    private static final Logger log = LoggerFactory.getLogger(ToolController.class);
 
     private final ToolRegistry toolRegistry;
     private final ToolCallRecordRepository toolCallRecordRepository;
@@ -44,15 +48,46 @@ public class ToolController {
             @PathVariable String name,
             @RequestBody ToolRequest request
     ) {
+        long startedAt = System.currentTimeMillis();
         AgentTool tool = toolRegistry.findByName(name)
                 .orElseThrow(() -> new AgentException("Tool not found: " + name));
         CurrentUser user = CurrentUserContext.required();
         String externalConversationId = UserConversationIds.external(request == null ? null : request.conversationId());
-        return tool.execute(new ToolRequest(
+        ToolRequest internalRequest = new ToolRequest(
                 UserConversationIds.internal(user.id(), externalConversationId),
                 request == null ? null : request.input(),
                 request == null ? null : request.arguments()
-        ));
+        );
+        log.info(
+                "tools.execute_start userId={} conversationId={} toolName={} inputLength={} hasArguments={}",
+                user.id(),
+                externalConversationId,
+                name,
+                internalRequest.input() == null ? 0 : internalRequest.input().length(),
+                internalRequest.arguments() != null && !internalRequest.arguments().isEmpty()
+        );
+        try {
+            ToolResult result = tool.execute(internalRequest);
+            log.info(
+                    "tools.execute_done userId={} conversationId={} toolName={} outputLength={} elapsedMs={}",
+                    user.id(),
+                    externalConversationId,
+                    name,
+                    result.content() == null ? 0 : result.content().length(),
+                    System.currentTimeMillis() - startedAt
+            );
+            return result;
+        } catch (RuntimeException exception) {
+            log.error(
+                    "tools.execute_error userId={} conversationId={} toolName={} elapsedMs={}",
+                    user.id(),
+                    externalConversationId,
+                    name,
+                    System.currentTimeMillis() - startedAt,
+                    exception
+            );
+            throw exception;
+        }
     }
 
     @GetMapping("/calls")

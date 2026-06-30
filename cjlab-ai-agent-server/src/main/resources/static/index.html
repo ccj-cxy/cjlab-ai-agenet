@@ -79,7 +79,14 @@
                 <span id="chatSubtitle">请先登录，然后开始 SSE 对话</span>
             </div>
             <div class="header-actions">
-                <span id="activeRoleLabel" class="role-state">默认助手</span>
+                <div class="chat-role-picker" aria-label="选择对话角色">
+                    <span id="activeRoleAvatar" class="role-avatar" aria-hidden="true">AI</span>
+                    <div class="chat-role-fields">
+                        <label for="roleChatSelect">角色卡</label>
+                        <select id="roleChatSelect"></select>
+                    </div>
+                    <span id="activeRoleLabel" class="role-state">默认助手</span>
+                </div>
                 <span id="streamState" class="stream-state idle">idle</span>
                 <button id="loadMemoryBtn" class="secondary-button" type="button">同步记忆</button>
                 <button id="clearChatBtn" class="secondary-button" type="button">清屏</button>

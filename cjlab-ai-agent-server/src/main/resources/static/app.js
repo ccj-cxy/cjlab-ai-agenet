@@ -69,6 +69,8 @@ const els = {
     conversationList: document.querySelector("#conversationList"),
     chatTitle: document.querySelector("#chatTitle"),
     chatSubtitle: document.querySelector("#chatSubtitle"),
+    roleChatSelect: document.querySelector("#roleChatSelect"),
+    activeRoleAvatar: document.querySelector("#activeRoleAvatar"),
     activeRoleLabel: document.querySelector("#activeRoleLabel"),
     streamState: document.querySelector("#streamState"),
     chatStream: document.querySelector("#chatStream"),
@@ -287,6 +289,20 @@ function setStreamState(label, mode = "idle") {
 function renderLog(entry) {
     state.lastLog = entry;
     els.requestLog.textContent = pretty(entry);
+    console.info("[cjlab-agent]", sanitizeConsoleLog(entry));
+}
+
+function sanitizeConsoleLog(entry) {
+    const safeEntry = JSON.parse(JSON.stringify(entry ?? {}));
+    if (String(safeEntry.path || "").startsWith("/api/users/")) {
+        if (safeEntry.request?.password) {
+            safeEntry.request.password = "***";
+        }
+        if (safeEntry.response?.accessToken) {
+            safeEntry.response.accessToken = "***";
+        }
+    }
+    return safeEntry;
 }
 
 function splitThinkContent(rawContent) {
@@ -462,6 +478,7 @@ function renderAuth() {
     els.searchKnowledgeBtn.disabled = !signedIn;
     els.loadToolsBtn.disabled = !signedIn;
     els.executeToolBtn.disabled = !signedIn;
+    els.roleChatSelect.disabled = !signedIn;
     els.chatSubtitle.textContent = signedIn ? "ready" : "请先登录，然后开始 SSE 对话";
     if (!state.sending) {
         setStreamState(signedIn ? "ready" : "locked", signedIn ? "ready" : "idle");
@@ -565,11 +582,13 @@ function renderRoleCards() {
     if (!state.roleCards.some(card => card.id === state.selectedRoleCardId)) {
         state.selectedRoleCardId = state.roleCards[0]?.id || "default";
     }
-    els.roleCardSelect.innerHTML = state.roleCards.map(card => `
+    const options = state.roleCards.map(card => `
         <option value="${escapeHtml(card.id)}" ${card.id === state.selectedRoleCardId ? "selected" : ""}>
             ${escapeHtml(card.name || card.id)}
         </option>
     `).join("");
+    els.roleChatSelect.innerHTML = options;
+    els.roleCardSelect.innerHTML = options;
     renderRoleCardEditor();
 }
 
@@ -580,6 +599,11 @@ function renderRoleCardEditor() {
     els.roleCardAvatar.value = card?.avatar || "";
     els.roleCardInstruction.value = card?.instruction || "";
     els.activeRoleLabel.textContent = card?.name || "默认助手";
+    if (card?.avatar) {
+        els.activeRoleAvatar.innerHTML = `<img src="${escapeHtml(card.avatar)}" alt="">`;
+    } else {
+        els.activeRoleAvatar.textContent = roleInitials(card);
+    }
     els.roleCardPreview.innerHTML = card ? `
         <div class="result-item">
             <div class="result-title">
@@ -595,6 +619,12 @@ function renderRoleCardEditor() {
 function selectRoleCard(id) {
     state.selectedRoleCardId = id;
     localStorage.setItem(SELECTED_ROLE_CARD_KEY, id);
+    if (els.roleChatSelect.value !== id) {
+        els.roleChatSelect.value = id;
+    }
+    if (els.roleCardSelect.value !== id) {
+        els.roleCardSelect.value = id;
+    }
     renderRoleCards();
 }
 
@@ -1101,6 +1131,7 @@ els.clearChatBtn.addEventListener("click", showEmptyChat);
 els.loadMemoryBtn.addEventListener("click", () => loadMemory(true));
 els.reloadMemoryBtn.addEventListener("click", () => loadMemory(false));
 els.loadSummaryBtn.addEventListener("click", loadSummary);
+els.roleChatSelect.addEventListener("change", () => selectRoleCard(els.roleChatSelect.value));
 els.roleCardSelect.addEventListener("change", () => selectRoleCard(els.roleCardSelect.value));
 els.saveRoleCardBtn.addEventListener("click", saveCurrentRoleCard);
 els.newRoleCardBtn.addEventListener("click", newRoleCard);

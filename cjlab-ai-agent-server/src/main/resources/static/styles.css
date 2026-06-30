@@ -376,6 +376,33 @@ pre {
     gap: 8px;
 }
 
+.chat-role-picker {
+    display: grid;
+    grid-template-columns: auto minmax(150px, 220px) auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfcfe;
+}
+
+.chat-role-fields {
+    min-width: 0;
+}
+
+.chat-role-fields label {
+    margin: 0 0 3px;
+    font-size: 11px;
+}
+
+#roleChatSelect {
+    min-height: 30px;
+    padding: 5px 8px;
+    font-size: 13px;
+}
+
 .stream-state {
     display: inline-flex;
     align-items: center;
@@ -1026,6 +1053,15 @@ pre {
     .header-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
+    }
+
+    .chat-role-picker {
+        grid-column: 1 / -1;
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .chat-role-picker .role-state {
+        grid-column: 1 / -1;
     }
 
     .role-state,

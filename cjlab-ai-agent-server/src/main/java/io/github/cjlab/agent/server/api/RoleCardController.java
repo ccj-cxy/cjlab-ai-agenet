@@ -5,6 +5,8 @@ import io.github.cjlab.agent.server.security.CurrentUser;
 import io.github.cjlab.agent.server.security.CurrentUserContext;
 import io.github.cjlab.agent.user.UserRoleCard;
 import io.github.cjlab.agent.user.UserRoleCardRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,6 +21,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/role-cards")
 public class RoleCardController {
+
+    private static final Logger log = LoggerFactory.getLogger(RoleCardController.class);
 
     private static final List<ChatRoleCard> DEFAULT_ROLE_CARDS = List.of(
             new ChatRoleCard(
@@ -59,12 +63,19 @@ public class RoleCardController {
 
     @GetMapping
     public List<RoleCardResponse> list() {
+        long startedAt = System.currentTimeMillis();
         CurrentUser user = CurrentUserContext.required();
         List<UserRoleCard> roleCards = userRoleCardRepository.listByUserId(user.id());
         if (roleCards.isEmpty()) {
             seedDefaultRoleCards(user);
             roleCards = userRoleCardRepository.listByUserId(user.id());
         }
+        log.info(
+                "role_cards.list userId={} count={} elapsedMs={}",
+                user.id(),
+                roleCards.size(),
+                System.currentTimeMillis() - startedAt
+        );
         return roleCards
                 .stream()
                 .map(this::toResponse)
@@ -73,9 +84,17 @@ public class RoleCardController {
 
     @PostMapping("/defaults")
     public List<RoleCardResponse> saveDefaults() {
+        long startedAt = System.currentTimeMillis();
         CurrentUser user = CurrentUserContext.required();
         seedDefaultRoleCards(user);
-        return userRoleCardRepository.listByUserId(user.id())
+        List<UserRoleCard> roleCards = userRoleCardRepository.listByUserId(user.id());
+        log.info(
+                "role_cards.defaults_saved userId={} count={} elapsedMs={}",
+                user.id(),
+                roleCards.size(),
+                System.currentTimeMillis() - startedAt
+        );
+        return roleCards
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -83,6 +102,7 @@ public class RoleCardController {
 
     @PostMapping
     public RoleCardResponse save(@RequestBody ChatRoleCard request) {
+        long startedAt = System.currentTimeMillis();
         CurrentUser user = CurrentUserContext.required();
         ChatRoleCard roleCard = sanitize(request);
         UserRoleCard saved = userRoleCardRepository.save(new UserRoleCard(
@@ -94,14 +114,30 @@ public class RoleCardController {
                 roleCard.avatar(),
                 Instant.now()
         ));
+        log.info(
+                "role_cards.save userId={} roleId={} name={} avatar={} elapsedMs={}",
+                user.id(),
+                roleCard.id(),
+                roleCard.name(),
+                roleCard.avatar() == null ? "none" : "present",
+                System.currentTimeMillis() - startedAt
+        );
         return toResponse(saved);
     }
 
     @DeleteMapping("/{roleId}")
     public DeleteRoleCardResponse delete(@PathVariable String roleId) {
+        long startedAt = System.currentTimeMillis();
         CurrentUser user = CurrentUserContext.required();
         String normalizedRoleId = normalizeId(roleId);
         boolean deleted = userRoleCardRepository.deleteByUserIdAndRoleId(user.id(), normalizedRoleId);
+        log.info(
+                "role_cards.delete userId={} roleId={} deleted={} elapsedMs={}",
+                user.id(),
+                normalizedRoleId,
+                deleted,
+                System.currentTimeMillis() - startedAt
+        );
         return new DeleteRoleCardResponse(normalizedRoleId, deleted);
     }
 
@@ -130,6 +166,7 @@ public class RoleCardController {
                     now
             ));
         }
+        log.info("role_cards.seed_defaults userId={} count={}", user.id(), DEFAULT_ROLE_CARDS.size());
     }
 
     private ChatRoleCard sanitize(ChatRoleCard roleCard) {
