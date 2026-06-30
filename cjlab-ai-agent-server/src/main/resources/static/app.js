@@ -8,25 +8,29 @@ const DEFAULT_ROLE_CARDS = [
         id: "default",
         name: "默认助手",
         description: "平衡、直接、可执行",
-        instruction: "用清晰、简洁、务实的方式回答。优先给结论和可执行步骤。"
+        instruction: "用清晰、简洁、务实的方式回答。优先给结论和可执行步骤。",
+        avatar: ""
     },
     {
         id: "engineer",
         name: "后端工程师",
         description: "Java/Spring/MyBatis 工程实现优先",
-        instruction: "以资深 Java 后端工程师风格回答。优先指出模块边界、数据模型、接口契约、异常路径和验证方式。代码建议要贴近现有工程。"
+        instruction: "以资深 Java 后端工程师风格回答。优先指出模块边界、数据模型、接口契约、异常路径和验证方式。代码建议要贴近现有工程。",
+        avatar: ""
     },
     {
         id: "product",
         name: "产品分析师",
         description: "目标、用户价值、流程和优先级",
-        instruction: "以产品分析师风格回答。先澄清目标和用户场景，再按优先级拆解方案，关注体验闭环、指标和风险。"
+        instruction: "以产品分析师风格回答。先澄清目标和用户场景，再按优先级拆解方案，关注体验闭环、指标和风险。",
+        avatar: ""
     },
     {
         id: "teacher",
         name: "讲解老师",
         description: "循序渐进、示例驱动",
-        instruction: "以耐心讲解老师风格回答。把复杂概念拆成小步骤，用示例解释关键点，并在最后给出简短总结。"
+        instruction: "以耐心讲解老师风格回答。把复杂概念拆成小步骤，用示例解释关键点，并在最后给出简短总结。",
+        avatar: ""
     }
 ];
 
@@ -81,6 +85,7 @@ const els = {
     roleCardSelect: document.querySelector("#roleCardSelect"),
     roleCardName: document.querySelector("#roleCardName"),
     roleCardDescription: document.querySelector("#roleCardDescription"),
+    roleCardAvatar: document.querySelector("#roleCardAvatar"),
     roleCardInstruction: document.querySelector("#roleCardInstruction"),
     saveRoleCardBtn: document.querySelector("#saveRoleCardBtn"),
     newRoleCardBtn: document.querySelector("#newRoleCardBtn"),
@@ -149,6 +154,7 @@ function mergeRoleCards(baseCards, persistedCards) {
                 name: card.name,
                 description: card.description || "",
                 instruction: card.instruction || "",
+                avatar: card.avatar || "",
                 updatedAt: card.updatedAt || null
             });
         }
@@ -174,8 +180,16 @@ async function persistRoleCard(card) {
         id: card.id,
         name: card.name,
         description: card.description,
-        instruction: card.instruction
+        instruction: card.instruction,
+        avatar: card.avatar
     });
+}
+
+async function persistDefaultRoleCards() {
+    if (!isSignedIn()) {
+        return DEFAULT_ROLE_CARDS.map(card => ({ ...card }));
+    }
+    return await requestJson("POST", "/api/role-cards/defaults");
 }
 
 function selectedRoleCard() {
@@ -193,7 +207,8 @@ function roleCardPayload() {
         id: card.id,
         name: card.name,
         description: card.description,
-        instruction: card.instruction
+        instruction: card.instruction,
+        avatar: card.avatar
     };
 }
 
@@ -220,6 +235,29 @@ function escapeHtml(value) {
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;");
+}
+
+function roleInitials(card) {
+    const source = String(card?.name || card?.id || "AI").trim();
+    if (!source) {
+        return "AI";
+    }
+    return source
+        .split(/[\s_-]+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part.slice(0, 1))
+        .join("")
+        .toUpperCase();
+}
+
+function roleAvatarHtml(card, className = "") {
+    const avatar = String(card?.avatar || "").trim();
+    const label = roleInitials(card);
+    if (avatar) {
+        return `<span class="role-avatar ${className}"><img src="${escapeHtml(avatar)}" alt=""></span>`;
+    }
+    return `<span class="role-avatar ${className}">${escapeHtml(label)}</span>`;
 }
 
 function pretty(value) {
@@ -539,11 +577,15 @@ function renderRoleCardEditor() {
     const card = selectedRoleCard();
     els.roleCardName.value = card?.name || "";
     els.roleCardDescription.value = card?.description || "";
+    els.roleCardAvatar.value = card?.avatar || "";
     els.roleCardInstruction.value = card?.instruction || "";
     els.activeRoleLabel.textContent = card?.name || "默认助手";
     els.roleCardPreview.innerHTML = card ? `
         <div class="result-item">
-            <div class="result-title"><span>${escapeHtml(card.name)}</span><span>${escapeHtml(card.id)}</span></div>
+            <div class="result-title">
+                <span class="role-preview-heading">${roleAvatarHtml(card)}<span>${escapeHtml(card.name)}</span></span>
+                <span>${escapeHtml(card.id)}</span>
+            </div>
             <div class="result-meta">${escapeHtml(card.description)}</div>
             <div class="result-content">${escapeHtml(card.instruction)}</div>
         </div>
@@ -576,7 +618,8 @@ async function saveCurrentRoleCard() {
             id,
             name,
             description: els.roleCardDescription.value.trim(),
-            instruction: els.roleCardInstruction.value.trim()
+            instruction: els.roleCardInstruction.value.trim(),
+            avatar: els.roleCardAvatar.value.trim()
         };
         const saved = await persistRoleCard(next);
         const normalized = {
@@ -585,6 +628,7 @@ async function saveCurrentRoleCard() {
             name: saved?.name || next.name,
             description: saved?.description || next.description,
             instruction: saved?.instruction || next.instruction,
+            avatar: saved?.avatar || next.avatar,
             updatedAt: saved?.updatedAt || null
         };
         const index = state.roleCards.findIndex(card => card.id === id || card.id === normalized.id);
@@ -608,7 +652,8 @@ function newRoleCard() {
         id,
         name: "自定义角色",
         description: "",
-        instruction: ""
+        instruction: "",
+        avatar: ""
     });
     state.selectedRoleCardId = id;
     saveRoleCards();
@@ -623,10 +668,7 @@ async function resetRoleCards() {
     state.selectedRoleCardId = "default";
     try {
         if (isSignedIn()) {
-            const savedCards = [];
-            for (const card of DEFAULT_ROLE_CARDS) {
-                savedCards.push(await persistRoleCard(card));
-            }
+            const savedCards = await persistDefaultRoleCards();
             state.roleCards = mergeRoleCards(DEFAULT_ROLE_CARDS, savedCards);
         }
         saveRoleCards();

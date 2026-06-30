@@ -8,6 +8,7 @@ public record UserRoleCard(
         String name,
         String description,
         String instruction,
+        String avatar,
         Instant updatedAt
 ) {
 }

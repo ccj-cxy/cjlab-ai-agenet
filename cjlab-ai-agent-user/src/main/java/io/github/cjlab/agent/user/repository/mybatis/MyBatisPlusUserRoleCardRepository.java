@@ -22,13 +22,8 @@ public class MyBatisPlusUserRoleCardRepository implements UserRoleCardRepository
     @Override
     public UserRoleCard save(UserRoleCard roleCard) {
         String id = id(roleCard.userId(), roleCard.roleId());
-        UserRoleCardEntity existing = userRoleCardMapper.selectById(id);
-        UserRoleCardEntity entity = toEntity(id, roleCard, existing);
-        if (existing == null) {
-            userRoleCardMapper.insert(entity);
-        } else {
-            userRoleCardMapper.updateById(entity);
-        }
+        UserRoleCardEntity entity = toEntity(id, roleCard);
+        userRoleCardMapper.upsert(entity);
         return roleCard;
     }
 
@@ -48,7 +43,12 @@ public class MyBatisPlusUserRoleCardRepository implements UserRoleCardRepository
                 .map(this::toDomain);
     }
 
-    private UserRoleCardEntity toEntity(String id, UserRoleCard roleCard, UserRoleCardEntity existing) {
+    @Override
+    public boolean deleteByUserIdAndRoleId(String userId, String roleId) {
+        return userRoleCardMapper.deleteById(id(userId, roleId)) > 0;
+    }
+
+    private UserRoleCardEntity toEntity(String id, UserRoleCard roleCard) {
         Date now = new Date();
         UserRoleCardEntity entity = new UserRoleCardEntity();
         entity.setId(id);
@@ -57,7 +57,8 @@ public class MyBatisPlusUserRoleCardRepository implements UserRoleCardRepository
         entity.setName(roleCard.name());
         entity.setDescription(roleCard.description());
         entity.setInstruction(roleCard.instruction());
-        entity.setCreateTime(existing == null ? now : existing.getCreateTime());
+        entity.setAvatar(roleCard.avatar());
+        entity.setCreateTime(now);
         entity.setUpdateTime(toDate(roleCard.updatedAt(), now));
         entity.setDeleted(false);
         return entity;
@@ -70,6 +71,7 @@ public class MyBatisPlusUserRoleCardRepository implements UserRoleCardRepository
                 entity.getName(),
                 entity.getDescription(),
                 entity.getInstruction(),
+                entity.getAvatar(),
                 toInstant(entity.getUpdateTime())
         );
     }

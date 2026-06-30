@@ -4,6 +4,7 @@ public record ChatRoleCard(
         String id,
         String name,
         String description,
-        String instruction
+        String instruction,
+        String avatar
 ) {
 }

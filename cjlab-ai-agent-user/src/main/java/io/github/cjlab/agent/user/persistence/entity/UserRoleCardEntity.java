@@ -14,6 +14,7 @@ public class UserRoleCardEntity extends BaseDO {
     private String name;
     private String description;
     private String instruction;
+    private String avatar;
 
     public String getId() {
         return id;
@@ -61,5 +62,13 @@ public class UserRoleCardEntity extends BaseDO {
 
     public void setInstruction(String instruction) {
         this.instruction = instruction;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 }

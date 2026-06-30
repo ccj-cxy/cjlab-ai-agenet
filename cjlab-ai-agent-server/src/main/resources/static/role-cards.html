@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>角色卡管理 - CJLab AI Agent</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="role-page-body">
+<div class="role-page-shell">
+    <aside class="role-page-sidebar">
+        <section class="brand">
+            <div class="brand-mark">CJ</div>
+            <div>
+                <h1>角色卡管理</h1>
+                <span id="rolePageStatus">checking session</span>
+            </div>
+        </section>
+
+        <section class="auth-panel">
+            <div class="panel-heading">
+                <h2>账户</h2>
+                <button id="roleLogoutBtn" class="ghost-button tiny-button hidden" type="button">退出</button>
+            </div>
+            <div id="roleSignedInBox" class="signed-box hidden">
+                <strong id="roleCurrentUserName">未登录</strong>
+                <span id="roleCurrentUserEmail">-</span>
+            </div>
+            <form id="roleAuthForm" class="auth-form">
+                <div class="auth-mode" role="tablist" aria-label="账户操作">
+                    <button id="roleLoginModeBtn" class="segmented active" type="button">登录</button>
+                    <button id="roleRegisterModeBtn" class="segmented" type="button">注册</button>
+                </div>
+                <label for="roleEmailInput">邮箱</label>
+                <input id="roleEmailInput" type="email" autocomplete="email" placeholder="name@example.com" required>
+                <label for="rolePasswordInput">密码</label>
+                <input id="rolePasswordInput" type="password" autocomplete="current-password" placeholder="至少 8 位" required>
+                <div id="roleDisplayNameGroup" class="hidden">
+                    <label for="roleDisplayNameInput">显示名</label>
+                    <input id="roleDisplayNameInput" type="text" autocomplete="name" placeholder="CJLab User">
+                </div>
+                <button id="roleAuthSubmitBtn" class="primary-button full-button" type="submit">登录</button>
+                <div id="roleAuthStatus" class="inline-status">登录后维护角色卡</div>
+            </form>
+        </section>
+
+        <section class="runtime-panel">
+            <a class="button-link secondary-button full-button" href="/">返回对话台</a>
+            <button id="roleReloadBtn" class="secondary-button full-button" type="button">刷新角色卡</button>
+            <button id="roleResetDefaultsBtn" class="secondary-button full-button" type="button">恢复默认角色</button>
+        </section>
+    </aside>
+
+    <main class="role-workspace">
+        <header class="role-workspace-header">
+            <div>
+                <h2>角色配置</h2>
+                <span id="roleWorkspaceSubtitle">按当前登录人隔离保存</span>
+            </div>
+            <div class="header-actions">
+                <button id="roleNewBtn" class="secondary-button" type="button">新增</button>
+                <button id="roleDuplicateBtn" class="secondary-button" type="button">复制</button>
+                <button id="roleDeleteBtn" class="secondary-button danger-button" type="button">删除</button>
+                <button id="roleSaveBtn" class="primary-button" type="button">保存</button>
+            </div>
+        </header>
+
+        <section class="role-card-layout">
+            <aside class="role-card-list-panel">
+                <div class="panel-heading">
+                    <h2>角色列表</h2>
+                    <span id="roleCountBadge" class="small-badge">0</span>
+                </div>
+                <div id="roleCardList" class="role-card-list">暂无数据</div>
+            </aside>
+
+            <section class="role-editor-panel">
+                <div class="editor-grid">
+                    <div>
+                        <label for="roleIdInput">角色 ID</label>
+                        <input id="roleIdInput" type="text" autocomplete="off" placeholder="engineer">
+                    </div>
+                    <div>
+                        <label for="roleNameInput">名称</label>
+                        <input id="roleNameInput" type="text" autocomplete="off" placeholder="后端工程师">
+                    </div>
+                </div>
+                <section class="avatar-editor">
+                    <div id="roleAvatarPreview" class="role-avatar large-avatar" aria-hidden="true">AI</div>
+                    <div>
+                        <label for="roleAvatarInput">头像图片</label>
+                        <input id="roleAvatarInput" type="text" autocomplete="off" placeholder="https://... 或 data:image/...">
+                        <div class="avatar-actions">
+                            <input id="roleAvatarFileInput" class="file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+                            <button id="roleClearAvatarBtn" class="secondary-button tiny-button" type="button">清除头像</button>
+                        </div>
+                    </div>
+                </section>
+                <label for="roleDescriptionInput">描述</label>
+                <input id="roleDescriptionInput" type="text" autocomplete="off" placeholder="回答风格和适用场景">
+                <label for="roleInstructionInput">提示词</label>
+                <textarea id="roleInstructionInput" rows="14" placeholder="定义模型回答风格、结构、侧重点和约束"></textarea>
+                <div class="role-editor-footer">
+                    <div id="roleEditorStatus" class="inline-status">未选择角色</div>
+                    <div id="roleUpdatedAt" class="muted-text">-</div>
+                </div>
+                <section class="role-preview-section">
+                    <div class="panel-heading">
+                        <h2>预览</h2>
+                        <span id="rolePreviewId" class="small-badge">-</span>
+                    </div>
+                    <div id="rolePreviewBox" class="role-preview-box">暂无数据</div>
+                </section>
+            </section>
+        </section>
+    </main>
+</div>
+<script src="/role-cards.js"></script>
+</body>
+</html>

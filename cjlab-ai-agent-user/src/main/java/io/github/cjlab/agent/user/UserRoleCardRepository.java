@@ -10,4 +10,6 @@ public interface UserRoleCardRepository {
     List<UserRoleCard> listByUserId(String userId);
 
     Optional<UserRoleCard> findByUserIdAndRoleId(String userId, String roleId);
+
+    boolean deleteByUserIdAndRoleId(String userId, String roleId);
 }

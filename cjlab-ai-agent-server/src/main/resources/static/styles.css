@@ -56,6 +56,24 @@ button {
     white-space: nowrap;
 }
 
+button,
+a.button-link {
+    text-decoration: none;
+}
+
+a.button-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    border: 1px solid var(--accent);
+    border-radius: 7px;
+    padding: 0 13px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
 button:hover {
     border-color: var(--accent-strong);
     background: var(--accent-strong);
@@ -200,6 +218,12 @@ pre {
     margin-bottom: 10px;
 }
 
+.panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .signed-box {
     margin-bottom: 10px;
     padding: 10px;
@@ -259,6 +283,18 @@ pre {
     min-height: 30px;
     padding: 0 10px;
     font-size: 12px;
+}
+
+.danger-button {
+    border-color: #fecdca;
+    background: #ffffff;
+    color: var(--danger);
+}
+
+.danger-button:hover {
+    border-color: #fda29b;
+    background: #fef3f2;
+    color: var(--danger);
 }
 
 .inline-status.ok {
@@ -371,6 +407,34 @@ pre {
     font-weight: 800;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.role-avatar {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border: 1px solid #cdd7e5;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #12343b;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.role-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.large-avatar {
+    width: 72px;
+    height: 72px;
+    font-size: 18px;
 }
 
 .stream-state.ready {
@@ -667,6 +731,25 @@ pre {
     word-break: break-word;
 }
 
+.small-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0 8px;
+    background: #ffffff;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.muted-text {
+    color: var(--muted);
+    font-size: 12px;
+}
+
 .summary-box {
     min-height: 120px;
     margin-top: 10px;
@@ -710,6 +793,187 @@ pre {
     background: #f8fafc;
 }
 
+.role-page-body {
+    height: 100vh;
+    overflow: hidden;
+}
+
+.role-page-shell {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 12px;
+    width: 100%;
+    height: 100vh;
+    padding: 14px;
+}
+
+.role-page-sidebar,
+.role-workspace {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+}
+
+.role-page-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow: auto;
+    padding: 16px;
+}
+
+.role-workspace {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+}
+
+.role-workspace-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 68px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+}
+
+.role-workspace-header span {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.role-card-layout {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    min-height: 0;
+}
+
+.role-card-list-panel,
+.role-editor-panel {
+    min-height: 0;
+    overflow: auto;
+    padding: 16px;
+}
+
+.role-card-list-panel {
+    border-right: 1px solid var(--line);
+    background: #fbfcfe;
+}
+
+.role-card-list {
+    display: grid;
+    gap: 8px;
+}
+
+.role-card-list-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+    min-height: 58px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 10px;
+    background: #ffffff;
+    color: var(--text);
+    text-align: left;
+}
+
+.role-card-list-text {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+}
+
+.role-card-list-item:hover,
+.role-card-list-item.active {
+    border-color: rgba(15, 118, 110, 0.38);
+    background: #edf8f6;
+}
+
+.role-card-name,
+.role-card-id {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.role-card-name {
+    font-weight: 800;
+}
+
+.role-card-id {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+    gap: 12px;
+}
+
+.avatar-editor {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+    align-items: center;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfcfe;
+}
+
+.avatar-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.file-input {
+    min-height: 30px;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.role-preview-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.role-editor-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.role-preview-section {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+
+.role-preview-box {
+    min-height: 120px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-soft);
+    color: var(--muted);
+    font-size: 13px;
+}
+
 @media (max-width: 1200px) {
     body {
         height: auto;
@@ -729,6 +993,21 @@ pre {
 
     .chat-surface {
         min-height: 720px;
+    }
+
+    .role-page-body {
+        height: auto;
+        overflow: auto;
+    }
+
+    .role-page-shell {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .role-workspace {
+        min-height: 760px;
     }
 }
 
@@ -756,5 +1035,28 @@ pre {
 
     .message {
         max-width: 94%;
+    }
+
+    .role-workspace-header {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .role-workspace-header .header-actions {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .role-card-layout,
+    .editor-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .role-card-list-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .role-editor-footer {
+        display: grid;
     }
 }

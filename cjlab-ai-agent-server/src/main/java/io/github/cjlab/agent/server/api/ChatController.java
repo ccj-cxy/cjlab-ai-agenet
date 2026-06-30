@@ -118,7 +118,8 @@ public class ChatController {
                 trimToNull(roleCard.id(), 64),
                 name,
                 description,
-                instruction
+                instruction,
+                trimToNull(roleCard.avatar(), 200_000)
         );
     }
 

@@ -1,9 +1,3 @@
-CREATE DATABASE IF NOT EXISTS cjlab_ai_agent
-    DEFAULT CHARACTER SET utf8mb4
-    DEFAULT COLLATE utf8mb4_0900_ai_ci;
-
-USE cjlab_ai_agent;
-
 CREATE TABLE IF NOT EXISTS cjlab_user_account (
     id VARCHAR(64) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -59,6 +53,9 @@ CREATE TABLE IF NOT EXISTS cjlab_user_role_card (
         REFERENCES cjlab_user_account (id)
         ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
+
+ALTER TABLE cjlab_user_role_card
+    ADD COLUMN avatar LONGTEXT NULL AFTER instruction;
 
 CREATE TABLE IF NOT EXISTS cjlab_conversation_message (
     id VARCHAR(64) NOT NULL,

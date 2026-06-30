@@ -16,6 +16,7 @@
                 <span id="runtimeBadge">checking runtime</span>
             </div>
         </section>
+        <a class="button-link secondary-button full-button" href="/role-cards.html">角色卡管理</a>
 
         <section class="auth-panel">
             <div class="panel-heading">
@@ -136,7 +137,10 @@
         <section id="roleTab" class="tab-panel">
             <div class="panel-heading">
                 <h2>角色卡</h2>
-                <button id="resetRoleCardsBtn" class="secondary-button tiny-button" type="button">重置</button>
+                <div class="panel-actions">
+                    <a class="button-link secondary-button tiny-button" href="/role-cards.html">维护</a>
+                    <button id="resetRoleCardsBtn" class="secondary-button tiny-button" type="button">重置</button>
+                </div>
             </div>
             <label for="roleCardSelect">角色</label>
             <select id="roleCardSelect"></select>
@@ -144,6 +148,8 @@
             <input id="roleCardName" type="text" value="">
             <label for="roleCardDescription">描述</label>
             <input id="roleCardDescription" type="text" value="">
+            <label for="roleCardAvatar">头像 URL</label>
+            <input id="roleCardAvatar" type="text" value="" placeholder="https://... 或 data:image/...">
             <label for="roleCardInstruction">指令</label>
             <textarea id="roleCardInstruction" rows="7"></textarea>
             <div class="split-actions">
